@@ -2,6 +2,7 @@
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { Payment } from '@/data/mockData';
 import {
   Popover,
   PopoverContent,
@@ -9,10 +10,10 @@ import {
 } from '@/components/ui/popover';
 
 interface DownloadReceiptPopoverProps {
-  payment: any | null; // Using any for now, should be replaced with proper type
+  payment: Payment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDownload: (format: string, payment: any) => void;
+  onDownload: (format: string, payment: Payment) => void;
 }
 
 const DownloadReceiptPopover: React.FC<DownloadReceiptPopoverProps> = ({

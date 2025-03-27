@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCurrency } from '@/lib/utils';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
+import { Payment } from '@/data/mockData';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 
 interface PaymentDetailsDialogProps {
-  payment: any | null; // Using any for now, should be replaced with proper type
+  payment: Payment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

@@ -6,18 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
-
-interface Payment {
-  id: string;
-  transactionId: string;
-  invoiceId: string;
-  companyId: string;
-  amount: number;
-  date: string;
-  method: string;
-  status: string;
-  notes?: string;
-}
+import { PaymentStatus, Payment } from '@/data/mockData';
 
 interface PaymentsTableProps {
   payments: Payment[];
@@ -72,7 +61,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({
       accessorKey: 'status',
       enableSorting: true,
       cell: (payment) => (
-        <StatusBadge status={payment.status} type="payment" />
+        <StatusBadge status={payment.status as PaymentStatus} type="payment" />
       ),
       className: 'text-center',
       cellClassName: 'text-center'
@@ -100,7 +89,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({
           {
             label: t('payments.delete'),
             icon: <Trash className="h-4 w-4" />,
-            onClick: () => onDeletePayment(payment.transactionId),
+            onClick: () => onDeletePayment(payment.transactionId || ''),
             className: 'text-destructive'
           }
         ];

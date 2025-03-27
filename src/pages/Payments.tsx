@@ -4,10 +4,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/components/PageHeader';
 import { CreditCard } from 'lucide-react';
-import { mockPayments } from '@/data/mockData';
+import { mockPayments, Payment } from '@/data/mockData';
 import { toast } from 'sonner';
 
-// Import our new components
+// Import our components
 import PaymentFilters from '@/components/payments/PaymentFilters';
 import PaymentsTable from '@/components/payments/PaymentsTable';
 import PaymentDetailsDialog from '@/components/payments/PaymentDetailsDialog';
@@ -21,11 +21,11 @@ const Payments = () => {
   const companyId = user?.companyId || '101'; // Default for demo
   
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewPayment, setViewPayment] = useState<(typeof mockPayments[0]) | null>(null);
+  const [viewPayment, setViewPayment] = useState<Payment | null>(null);
   const [viewInvoice, setViewInvoice] = useState<string | null>(null);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
-  const [downloadPayment, setDownloadPayment] = useState<(typeof mockPayments[0]) | null>(null);
+  const [downloadPayment, setDownloadPayment] = useState<Payment | null>(null);
   
   const getFilteredPayments = () => {
     return mockPayments
@@ -42,7 +42,7 @@ const Payments = () => {
   };
   
   // Function to view payment details
-  const handleViewPayment = (payment: typeof mockPayments[0]) => {
+  const handleViewPayment = (payment: Payment) => {
     setViewPayment(payment);
   };
 
@@ -52,13 +52,13 @@ const Payments = () => {
   };
 
   // Function to download receipt
-  const handleDownloadReceipt = (payment: typeof mockPayments[0]) => {
+  const handleDownloadReceipt = (payment: Payment) => {
     setDownloadPayment(payment);
     setIsDownloadMenuOpen(true);
   };
 
   // Function to actually download the receipt in a specific format
-  const handleDownloadReceiptFormat = (format: string, payment: typeof mockPayments[0]) => {
+  const handleDownloadReceiptFormat = (format: string, payment: Payment) => {
     setIsDownloadMenuOpen(false);
     setDownloadPayment(null);
     toast.success(`${t('payments.downloaded')} ${payment.transactionId} as ${format}`);
