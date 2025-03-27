@@ -9,7 +9,7 @@ const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen flex">
       <Navbar />
-      <div className="flex-1 md:ml-64 p-6 md:p-8 overflow-auto">
+      <div className="flex-1 p-6 md:p-8 overflow-auto">
         <Outlet />
       </div>
     </div>
