@@ -6,7 +6,8 @@ import PageHeader from '@/components/PageHeader';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, BarChart3, PieChart } from 'lucide-react';
+import { LineChart, BarChart3, PieChart, Download, Share, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Reports = () => {
   const { t } = useLanguage();
@@ -23,7 +24,7 @@ const Reports = () => {
       
       <Card className="mb-8 shadow-sm">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 justify-between">
             <Select value={reportType} onValueChange={setReportType}>
               <SelectTrigger className="w-full md:w-[220px]">
                 <SelectValue placeholder={t('reports.select_type')} />
@@ -35,6 +36,21 @@ const Reports = () => {
                 <SelectItem value="invoices">{t('reports.types.invoices')}</SelectItem>
               </SelectContent>
             </Select>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {t('reports.refresh')}
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                {t('reports.export')}
+              </Button>
+              <Button variant="outline" size="sm">
+                <Share className="h-4 w-4 mr-2" />
+                {t('reports.share')}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

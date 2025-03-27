@@ -7,7 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 import { mockPayments } from '@/data/mockData';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
 import StatusBadge from '@/components/StatusBadge';
-import { CreditCard, Search } from 'lucide-react';
+import { CreditCard, Search, Eye, FileText, Trash, Receipt, DownloadCloud } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
 
 const Payments = () => {
   const { t } = useLanguage();
@@ -86,6 +87,47 @@ const Payments = () => {
       cell: (payment) => (
         <StatusBadge status={payment.status} type="payment" />
       ),
+      className: 'text-center',
+      cellClassName: 'text-center'
+    },
+    {
+      header: t('payments.actions'),
+      accessorKey: 'id',
+      cell: (payment) => {
+        const actions: ActionItem[] = [
+          {
+            label: t('payments.view'),
+            icon: <Eye className="h-4 w-4" />,
+            onClick: () => {
+              toast.info(`${t('payments.viewing')} #${payment.transactionId}`);
+            }
+          },
+          {
+            label: t('payments.view_invoice'),
+            icon: <FileText className="h-4 w-4" />,
+            onClick: () => {
+              toast.info(`${t('payments.viewing_invoice')} #${payment.invoiceId}`);
+            }
+          },
+          {
+            label: t('payments.download_receipt'),
+            icon: <DownloadCloud className="h-4 w-4" />,
+            onClick: () => {
+              toast.info(`${t('payments.downloading_receipt')} #${payment.transactionId}`);
+            }
+          },
+          {
+            label: t('payments.delete'),
+            icon: <Trash className="h-4 w-4" />,
+            onClick: () => {
+              toast.error(`${t('payments.deleting')} #${payment.transactionId}`);
+            },
+            className: 'text-destructive'
+          }
+        ];
+        
+        return <TableActions actions={actions} label={t('common.actions')} />;
+      },
       className: 'text-center',
       cellClassName: 'text-center'
     }

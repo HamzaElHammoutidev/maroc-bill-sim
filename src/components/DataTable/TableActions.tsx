@@ -16,28 +16,36 @@ export type ActionItem = {
   icon?: React.ReactNode;
   onClick: () => void;
   className?: string;
+  disabled?: boolean;
+  danger?: boolean;
 };
 
 export interface TableActionsProps {
   actions: ActionItem[];
   label?: string;
+  placement?: 'left' | 'right';
+  variant?: 'ghost' | 'outline';
+  size?: 'sm' | 'default';
 }
 
 const TableActions: React.FC<TableActionsProps> = ({
   actions,
   label = 'Actions',
+  placement = 'right',
+  variant = 'ghost',
+  size = 'icon',
 }) => {
   if (actions.length === 0) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant={variant} size={size === 'default' ? 'default' : 'icon'}>
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">{label}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align={placement === 'left' ? 'start' : 'end'}>
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {actions.map((action, index) => (
@@ -45,6 +53,7 @@ const TableActions: React.FC<TableActionsProps> = ({
             key={index}
             onClick={action.onClick}
             className={action.className}
+            disabled={action.disabled}
           >
             {action.icon && <span className="mr-2">{action.icon}</span>}
             {action.label}

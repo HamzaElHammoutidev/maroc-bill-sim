@@ -4,11 +4,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Calendar } from 'lucide-react';
+import { FileText, Calendar, Edit, Trash, Eye, FileCheck, FilePieChart } from 'lucide-react';
 import { mockQuotes, Quote, getClientById } from '@/data/mockData';
 import { formatCurrency } from '@/lib/utils';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
+import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
 
 const Quotes = () => {
   const { t } = useLanguage();
@@ -88,6 +89,59 @@ const Quotes = () => {
       cell: (quote) => (
         <StatusBadge status={quote.status} type="quote" />
       )
+    },
+    {
+      header: t('quotes.actions'),
+      accessorKey: 'id',
+      cell: (quote) => {
+        const actions: ActionItem[] = [
+          {
+            label: t('form.view'),
+            icon: <Eye className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('quotes.viewToast'),
+                description: `${t('quotes.viewToastDesc')} ${quote.quoteNumber}`
+              });
+            }
+          },
+          {
+            label: t('form.edit'),
+            icon: <Edit className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('quotes.editToast'),
+                description: `${t('quotes.editToastDesc')} ${quote.quoteNumber}`
+              });
+            }
+          },
+          {
+            label: t('quotes.convert'),
+            icon: <FilePieChart className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('quotes.convertToast'),
+                description: `${t('quotes.convertToastDesc')} ${quote.quoteNumber}`
+              });
+            }
+          },
+          {
+            label: t('form.delete'),
+            icon: <Trash className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('quotes.deleteToast'),
+                description: `${t('quotes.deleteToastDesc')} ${quote.quoteNumber}`
+              });
+            },
+            className: 'text-destructive'
+          }
+        ];
+        
+        return <TableActions actions={actions} label={t('common.actions')} />;
+      },
+      className: 'text-center',
+      cellClassName: 'text-center'
     }
   ];
   
@@ -121,12 +175,8 @@ const Quotes = () => {
           title={t('quotes.recentTitle')}
           initialSortField="date"
           initialSortDirection="desc"
-          onRowClick={(quote) => {
-            toast({
-              title: t('quotes.viewToast'),
-              description: `${t('quotes.viewToastDesc')} ${quote.quoteNumber}`
-            });
-          }}
+          onRowClick={null}
+          cardClassName="shadow-sm"
         />
       )}
     </div>

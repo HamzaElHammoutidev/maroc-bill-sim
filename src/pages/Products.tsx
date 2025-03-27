@@ -4,10 +4,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Edit, Trash, Eye, Copy } from 'lucide-react';
 import { mockProducts, Product } from '@/data/mockData';
 import { formatCurrency } from '@/lib/utils';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
+import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
 
 const Products = () => {
   const { t } = useLanguage();
@@ -69,6 +70,59 @@ const Products = () => {
           {product.isService ? t('products.service') : t('products.product')}
         </span>
       )
+    },
+    {
+      header: t('products.actions'),
+      accessorKey: 'id',
+      cell: (product) => {
+        const actions: ActionItem[] = [
+          {
+            label: t('form.view'),
+            icon: <Eye className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('products.viewToast'),
+                description: `${t('products.viewToastDesc')} ${product.name}`
+              });
+            }
+          },
+          {
+            label: t('form.edit'),
+            icon: <Edit className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('products.editToast'),
+                description: `${t('products.editToastDesc')} ${product.name}`
+              });
+            }
+          },
+          {
+            label: t('form.duplicate'),
+            icon: <Copy className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('products.duplicateToast'),
+                description: `${t('products.duplicateToastDesc')} ${product.name}`
+              });
+            }
+          },
+          {
+            label: t('form.delete'),
+            icon: <Trash className="h-4 w-4" />,
+            onClick: () => {
+              toast({
+                title: t('products.deleteToast'),
+                description: `${t('products.deleteToastDesc')} ${product.name}`
+              });
+            },
+            className: 'text-destructive'
+          }
+        ];
+        
+        return <TableActions actions={actions} label={t('common.actions')} />;
+      },
+      className: 'text-center',
+      cellClassName: 'text-center'
     }
   ];
   
@@ -103,12 +157,6 @@ const Products = () => {
           title={t('products.cardTitle')}
           initialSortField="name"
           initialSortDirection="asc"
-          onRowClick={(product) => {
-            toast({
-              title: t('products.viewToast'),
-              description: `${t('products.viewToastDesc')} ${product.name}`
-            });
-          }}
         />
       )}
     </div>
