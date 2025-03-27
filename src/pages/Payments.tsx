@@ -1,83 +1,143 @@
 
 import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/components/PageHeader';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatCurrency } from '@/lib/utils';
+import { mockPayments } from '@/data/mockData';
+import DataTable, { Column } from '@/components/DataTable/DataTable';
+import StatusBadge from '@/components/StatusBadge';
+import { CreditCard, Search } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 const Payments = () => {
   const { t } = useLanguage();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const companyId = user?.companyId || '101'; // Default for demo
+  
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const getFilteredPayments = () => {
+    return mockPayments
+      .filter(payment => payment.companyId === companyId)
+      .filter(payment => 
+        statusFilter === 'all' || payment.status === statusFilter
+      );
+  };
+
+  const filteredPayments = getFilteredPayments();
   
   const handleAddPayment = () => {
-    toast({
-      title: t('payments.addToast'),
-      description: t('payments.addToastDesc'),
-    });
+    toast.info(t('payments.add_message'));
   };
   
+  // Status options for the filter
+  const statusOptions = [
+    { value: 'all', label: t('common.all') },
+    { value: 'pending', label: t('payments.pending') },
+    { value: 'completed', label: t('payments.completed') },
+    { value: 'failed', label: t('payments.failed') },
+    { value: 'refunded', label: t('payments.refunded') },
+  ];
+
+  const columns: Column<typeof mockPayments[0]>[] = [
+    {
+      header: t('payments.transaction_id'),
+      accessorKey: 'transactionId',
+      enableSorting: true,
+      cellClassName: 'font-medium'
+    },
+    {
+      header: t('payments.invoice'),
+      accessorKey: 'invoiceId',
+      enableSorting: true
+    },
+    {
+      header: t('payments.date'),
+      accessorKey: 'date',
+      enableSorting: true,
+      cell: (payment) => new Date(payment.date).toLocaleDateString()
+    },
+    {
+      header: t('payments.amount'),
+      accessorKey: 'amount',
+      enableSorting: true,
+      cell: (payment) => formatCurrency(payment.amount),
+      className: 'text-right',
+      cellClassName: 'text-right'
+    },
+    {
+      header: t('payments.method'),
+      accessorKey: 'method',
+      enableSorting: true
+    },
+    {
+      header: t('payments.status'),
+      accessorKey: 'status',
+      enableSorting: true,
+      cell: (payment) => (
+        <StatusBadge status={payment.status} type="payment" />
+      ),
+      className: 'text-center',
+      cellClassName: 'text-center'
+    }
+  ];
+  
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="staggered-fade-in">
       <PageHeader 
-        title="payments.title"
-        description="payments.description"
+        title={t('payments.title')} 
+        description={t('payments.description')}
         action={{
-          label: "payments.add",
+          label: t('payments.add'),
           onClick: handleAddPayment
         }}
+        icon={<CreditCard className="h-4 w-4" />}
       />
       
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">{t('payments.tabs.all')}</TabsTrigger>
-          <TabsTrigger value="pending">{t('payments.tabs.pending')}</TabsTrigger>
-          <TabsTrigger value="completed">{t('payments.tabs.completed')}</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all" className="space-y-4">
-          {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-[80px] w-full rounded-lg" />
-              <Skeleton className="h-[80px] w-full rounded-lg" />
-              <Skeleton className="h-[80px] w-full rounded-lg" />
+      <Card className="mb-8 shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <div className="w-full sm:w-48">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('common.status')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('payments.allTitle')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{t('payments.emptyState')}</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="pending" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('payments.pendingTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{t('payments.emptyState')}</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="completed" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('payments.completedTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{t('payments.emptyState')}</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <DataTable
+        data={filteredPayments}
+        columns={columns}
+        searchPlaceholder={t('payments.search')}
+        searchKey="transactionId"
+        noResultsMessage={t('payments.no_results')}
+        noDataMessage={t('payments.no_payments')}
+        initialSortField="date"
+        initialSortDirection="desc"
+        cardClassName="shadow-sm"
+        tableClassName="border-collapse border-spacing-0"
+      />
     </div>
   );
 };
