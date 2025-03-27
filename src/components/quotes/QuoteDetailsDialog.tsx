@@ -1,13 +1,22 @@
+
 import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Quote, getClientById, getProductById } from '@/data/mockData';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import StatusBadge from '@/components/StatusBadge';
 import { Edit, Trash, Copy, FilePieChart, SendHorizontal } from 'lucide-react';
+
 interface QuoteDetailsDialogProps {
   quote: Quote | null;
   open: boolean;
@@ -18,6 +27,7 @@ interface QuoteDetailsDialogProps {
   onDuplicate?: () => void;
   onDelete?: () => void;
 }
+
 const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
   quote,
   open,
@@ -26,14 +36,14 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
   onSend,
   onConvert,
   onDuplicate,
-  onDelete
+  onDelete,
 }) => {
-  const {
-    t
-  } = useLanguage();
-  if (!quote) return null;
-  const client = getClientById(quote.clientId);
+  const { t } = useLanguage();
 
+  if (!quote) return null;
+
+  const client = getClientById(quote.clientId);
+  
   // Only allow editing of draft or sent quotes
   const canEdit = ['draft', 'sent'].includes(quote.status);
   // Only allow sending of draft or resending of sent quotes
@@ -42,8 +52,10 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
   const canConvert = quote.status === 'accepted';
   // Only allow deletion of non-converted quotes
   const canDelete = quote.status !== 'converted';
-  return <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="">
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>{quote.quoteNumber}</span>
@@ -58,8 +70,12 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
           <div>
             <h3 className="text-sm font-medium mb-1">{t('quotes.client')}</h3>
             <p className="text-base">{client?.name || t('quotes.unknownClient')}</p>
-            {client?.address && <p className="text-sm text-muted-foreground">{client.address}</p>}
-            {client?.city && <p className="text-sm text-muted-foreground">{client.city}</p>}
+            {client?.address && (
+              <p className="text-sm text-muted-foreground">{client.address}</p>
+            )}
+            {client?.city && (
+              <p className="text-sm text-muted-foreground">{client.city}</p>
+            )}
           </div>
           
           <div className="space-y-1">
@@ -71,14 +87,18 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
               <span className="text-sm font-medium">{t('quotes.expiryLabel')}:</span>
               <span>{formatDate(quote.expiryDate)}</span>
             </div>
-            {quote.convertedInvoiceId && <div className="flex justify-between">
+            {quote.convertedInvoiceId && (
+              <div className="flex justify-between">
                 <span className="text-sm font-medium">{t('quotes.invoiceLabel')}:</span>
                 <span>{quote.convertedInvoiceId}</span>
-              </div>}
-            {quote.terms && <div className="flex justify-between">
+              </div>
+            )}
+            {quote.terms && (
+              <div className="flex justify-between">
                 <span className="text-sm font-medium">{t('quotes.paymentTerms')}:</span>
                 <span>{quote.terms}</span>
-              </div>}
+              </div>
+            )}
           </div>
         </div>
         
@@ -98,14 +118,16 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {quote.items.map((item, index) => <TableRow key={index}>
+              {quote.items.map((item, index) => (
+                <TableRow key={index}>
                   <TableCell>{item.description}</TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
                   <TableCell className="text-right">{item.vatRate}%</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.discount)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
-                </TableRow>)}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -115,10 +137,12 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
             <span className="text-sm font-medium">{t('quotes.subtotal')}:</span>
             <span>{formatCurrency(quote.subtotal)}</span>
           </div>
-          {quote.discount > 0 && <div className="flex justify-between text-muted-foreground">
+          {quote.discount > 0 && (
+            <div className="flex justify-between text-muted-foreground">
               <span className="text-sm">{t('quotes.discount')}:</span>
               <span>-{formatCurrency(quote.discount)}</span>
-            </div>}
+            </div>
+          )}
           <div className="flex justify-between text-muted-foreground">
             <span className="text-sm">{t('quotes.vat')}:</span>
             <span>{formatCurrency(quote.vatAmount)}</span>
@@ -130,38 +154,71 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
           </div>
         </div>
         
-        {quote.notes && <div className="py-2">
+        {quote.notes && (
+          <div className="py-2">
             <h3 className="text-sm font-medium mb-1">{t('quotes.notes')}</h3>
             <p className="text-sm text-muted-foreground">{quote.notes}</p>
-          </div>}
+          </div>
+        )}
         
         <DialogFooter className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:justify-between">
-          <Button variant="outline" size="sm" onClick={onEdit} disabled={!canEdit} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            disabled={!canEdit}
+            className="w-full"
+          >
             <Edit className="h-4 w-4 mr-1" />
             {t('form.edit')}
           </Button>
           
-          <Button variant="outline" size="sm" onClick={onSend} disabled={!canSend} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSend}
+            disabled={!canSend}
+            className="w-full"
+          >
             <SendHorizontal className="h-4 w-4 mr-1" />
             {t('quotes.send')}
           </Button>
           
-          <Button variant="outline" size="sm" onClick={onConvert} disabled={!canConvert} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onConvert}
+            disabled={!canConvert}
+            className="w-full"
+          >
             <FilePieChart className="h-4 w-4 mr-1" />
             {t('quotes.convert')}
           </Button>
           
-          <Button variant="outline" size="sm" onClick={onDuplicate} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDuplicate}
+            className="w-full"
+          >
             <Copy className="h-4 w-4 mr-1" />
             {t('quotes.duplicate')}
           </Button>
           
-          <Button variant="destructive" size="sm" onClick={onDelete} disabled={!canDelete} className="w-full col-span-2 sm:col-span-4 mt-2">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onDelete}
+            disabled={!canDelete}
+            className="w-full col-span-2 sm:col-span-4 mt-2"
+          >
             <Trash className="h-4 w-4 mr-1" />
             {t('form.delete')}
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>;
+    </Dialog>
+  );
 };
+
 export default QuoteDetailsDialog;
