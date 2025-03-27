@@ -22,8 +22,6 @@ const App = () => (
     <TooltipProvider>
       <LanguageProvider>
         <AuthProvider>
-          <Toaster />
-          <Sonner />
           <BrowserRouter>
             <Routes>
               {/* Public Routes */}
@@ -51,6 +49,8 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          <Toaster />
+          <Sonner />
         </AuthProvider>
       </LanguageProvider>
     </TooltipProvider>
