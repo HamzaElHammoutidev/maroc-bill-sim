@@ -25,7 +25,8 @@ export interface TableActionsProps {
   label?: string;
   placement?: 'left' | 'right';
   variant?: 'ghost' | 'outline';
-  size?: 'sm' | 'default';
+  size?: 'sm' | 'default' | 'icon';
+  tooltipContent?: string;
 }
 
 const TableActions: React.FC<TableActionsProps> = ({
@@ -34,25 +35,34 @@ const TableActions: React.FC<TableActionsProps> = ({
   placement = 'right',
   variant = 'ghost',
   size = 'icon',
+  tooltipContent,
 }) => {
   if (actions.length === 0) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size === 'default' ? 'default' : 'icon'}>
+        <Button 
+          variant={variant} 
+          size={size === 'default' ? 'default' : 'icon'}
+          title={tooltipContent || label}
+        >
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">{label}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={placement === 'left' ? 'start' : 'end'}>
+      <DropdownMenuContent align={placement === 'left' ? 'start' : 'end'} className="bg-background border-border shadow-md z-50">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {actions.map((action, index) => (
           <DropdownMenuItem
             key={index}
-            onClick={action.onClick}
-            className={action.className}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              action.onClick();
+            }}
+            className={`${action.className || ''} ${action.danger ? 'text-destructive hover:text-destructive' : ''}`}
             disabled={action.disabled}
           >
             {action.icon && <span className="mr-2">{action.icon}</span>}
