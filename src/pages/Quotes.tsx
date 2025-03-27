@@ -15,9 +15,10 @@ import {
   Copy,
   Plus,
   FileX,
-  FileMinus
+  FileMinus,
+  SendHorizontal
 } from 'lucide-react';
-import { mockQuotes, Quote, getClientById } from '@/data/mockData';
+import { mockQuotes, mockInvoices, Quote, getClientById, QuoteStatus } from '@/data/mockData';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
@@ -39,17 +40,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import QuoteFilters from '@/components/quotes/QuoteFilters';
 import QuoteDetailsDialog from '@/components/quotes/QuoteDetailsDialog';
+import QuoteFormDialog from '@/components/quotes/QuoteFormDialog';
+import SendQuoteDialog from '@/components/quotes/SendQuoteDialog';
+import ConvertQuoteDialog from '@/components/quotes/ConvertQuoteDialog';
+import DeleteQuoteDialog from '@/components/quotes/DeleteQuoteDialog';
 
 const Quotes = () => {
   const { t } = useLanguage();
@@ -58,7 +54,14 @@ const Quotes = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  
+  // Dialog visibility states
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCreateForm, setIsCreateForm] = useState(true);
+  const [isSendOpen, setIsSendOpen] = useState(false);
+  const [isConvertOpen, setIsConvertOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   
   // Filter states
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
@@ -102,25 +105,53 @@ const Quotes = () => {
     setFilteredQuotes(result);
   }, [quotes, filterStatus, filterClient, filterDateRange]);
   
+  // Handler for the "Add Quote" button
   const handleAddQuote = () => {
-    toast({
-      title: t('quotes.addToast'),
-      description: t('quotes.addToastDesc'),
-    });
+    setSelectedQuote(null);
+    setIsCreateForm(true);
+    setIsFormOpen(true);
   };
   
+  // Handler for viewing a quote
   const handleViewQuote = (quote: Quote) => {
     setSelectedQuote(quote);
     setIsDetailsOpen(true);
   };
   
+  // Handler for editing a quote
   const handleEditQuote = (quote: Quote) => {
-    toast({
-      title: t('quotes.editToast'),
-      description: `${t('quotes.editToastDesc')} ${quote.quoteNumber}`
-    });
+    // Only allow editing of draft or sent quotes
+    if (!['draft', 'sent'].includes(quote.status)) {
+      toast({
+        title: t('quotes.editError'),
+        description: t('quotes.editErrorDesc'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setSelectedQuote(quote);
+    setIsCreateForm(false);
+    setIsFormOpen(true);
   };
   
+  // Handler for sending a quote
+  const handleSendQuote = (quote: Quote) => {
+    // Only allow sending of draft quotes or resending of sent quotes
+    if (!['draft', 'sent'].includes(quote.status)) {
+      toast({
+        title: t('quotes.sendError'),
+        description: t('quotes.sendErrorDesc'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setSelectedQuote(quote);
+    setIsSendOpen(true);
+  };
+  
+  // Handler for converting a quote to an invoice
   const handleConvertQuote = (quote: Quote) => {
     // Only allow conversion of quotes that are in 'accepted' status
     if (quote.status !== 'accepted') {
@@ -132,24 +163,207 @@ const Quotes = () => {
       return;
     }
     
-    toast({
-      title: t('quotes.convertToast'),
-      description: `${t('quotes.convertToastDesc')} ${quote.quoteNumber}`
-    });
+    setSelectedQuote(quote);
+    setIsConvertOpen(true);
   };
   
+  // Handler for duplicating a quote
   const handleDuplicateQuote = (quote: Quote) => {
+    // Create a new quote based on the selected one
+    const newQuote: Quote = {
+      ...quote,
+      id: `dup-${quote.id}`,
+      quoteNumber: `${quote.quoteNumber}-DUP`,
+      date: new Date().toISOString(),
+      expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+      status: 'draft' as QuoteStatus,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      convertedInvoiceId: undefined,
+    };
+    
+    // Add the new quote to the list
+    setQuotes([newQuote, ...quotes]);
+    
     toast({
       title: t('quotes.duplicateToast'),
       description: `${t('quotes.duplicateToastDesc')} ${quote.quoteNumber}`
     });
   };
   
+  // Handler for deleting a quote
   const handleDeleteQuote = (quote: Quote) => {
+    // Prevent deletion of converted quotes
+    if (quote.status === 'converted') {
+      toast({
+        title: t('quotes.deleteError'),
+        description: t('quotes.deleteErrorDesc'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setSelectedQuote(quote);
+    setIsDeleteOpen(true);
+  };
+  
+  // Form submission handlers
+  const handleQuoteFormSubmit = (data: any) => {
+    if (isCreateForm) {
+      // Generate a new quote ID and number
+      const newId = `quote-${Date.now()}`;
+      const nextNumber = quotes.length + 1;
+      const year = new Date().getFullYear();
+      const newQuoteNumber = `DEV-${year}-${String(nextNumber).padStart(4, '0')}`;
+      
+      // Create a new quote object
+      const newQuote: Quote = {
+        id: newId,
+        companyId: '101', // Using a default company ID
+        clientId: data.clientId,
+        quoteNumber: newQuoteNumber,
+        date: data.date.toISOString(),
+        expiryDate: data.expiryDate.toISOString(),
+        status: 'draft',
+        items: data.items,
+        subtotal: data.subtotal,
+        vatAmount: data.vatAmount,
+        discount: data.discountTotal,
+        total: data.total,
+        notes: data.notes,
+        terms: data.paymentTerms,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Add the new quote to the list
+      setQuotes([newQuote, ...quotes]);
+      
+      toast({
+        title: t('quotes.createToast'),
+        description: t('quotes.createToastDesc')
+      });
+    } else if (selectedQuote) {
+      // Update the existing quote
+      const updatedQuotes = quotes.map(q => {
+        if (q.id === selectedQuote.id) {
+          return {
+            ...q,
+            clientId: data.clientId,
+            date: data.date.toISOString(),
+            expiryDate: data.expiryDate.toISOString(),
+            items: data.items,
+            subtotal: data.subtotal,
+            vatAmount: data.vatAmount,
+            discount: data.discountTotal,
+            total: data.total,
+            notes: data.notes,
+            terms: data.paymentTerms,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return q;
+      });
+      
+      setQuotes(updatedQuotes);
+      
+      toast({
+        title: t('quotes.updateToast'),
+        description: t('quotes.updateToastDesc')
+      });
+    }
+    
+    setIsFormOpen(false);
+  };
+  
+  const handleSendFormSubmit = (data: any) => {
+    if (!selectedQuote) return;
+    
+    // Update the status to 'sent' if it was in 'draft' status
+    if (selectedQuote.status === 'draft') {
+      const updatedQuotes = quotes.map(q => {
+        if (q.id === selectedQuote.id) {
+          return {
+            ...q,
+            status: 'sent' as QuoteStatus,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return q;
+      });
+      
+      setQuotes(updatedQuotes);
+      setSelectedQuote({
+        ...selectedQuote,
+        status: 'sent',
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    
+    toast({
+      title: t('quotes.sendSuccess'),
+      description: t('quotes.sendSuccessDesc')
+    });
+    
+    setIsSendOpen(false);
+  };
+  
+  const handleConvertFormSubmit = (data: any) => {
+    if (!selectedQuote) return;
+    
+    // Generate a new invoice ID and number
+    const newId = `invoice-${Date.now()}`;
+    const nextNumber = mockInvoices.length + 1;
+    const year = new Date().getFullYear();
+    const newInvoiceNumber = `FACT-${year}-${String(nextNumber).padStart(4, '0')}`;
+    
+    // Update the quote status to 'converted'
+    const updatedQuotes = quotes.map(q => {
+      if (q.id === selectedQuote.id) {
+        return {
+          ...q,
+          status: 'converted' as QuoteStatus,
+          convertedInvoiceId: newInvoiceNumber,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return q;
+    });
+    
+    setQuotes(updatedQuotes);
+    
+    toast({
+      title: t('quotes.convertSuccess'),
+      description: `${t('quotes.convertSuccessDesc')} ${newInvoiceNumber}`
+    });
+    
+    // If deposit invoice was requested, show another toast
+    if (data.generateDeposit) {
+      toast({
+        title: t('quotes.depositCreated'),
+        description: `${t('quotes.depositCreatedDesc')} ${formatCurrency(data.depositAmount)}`
+      });
+    }
+    
+    setIsConvertOpen(false);
+    // Close the details dialog as well
+    setIsDetailsOpen(false);
+  };
+  
+  const handleConfirmDelete = () => {
+    if (!selectedQuote) return;
+    
+    // Remove the quote from the list
+    setQuotes(quotes.filter(q => q.id !== selectedQuote.id));
+    
     toast({
       title: t('quotes.deleteToast'),
-      description: `${t('quotes.deleteToastDesc')} ${quote.quoteNumber}`
+      description: `${t('quotes.deleteToastDesc')} ${selectedQuote.quoteNumber}`
     });
+    
+    setIsDeleteOpen(false);
+    // Close the details dialog as well
+    setIsDetailsOpen(false);
   };
 
   const handleApplyFilters = (filters: {
@@ -168,6 +382,7 @@ const Quotes = () => {
     setFilterDateRange({ from: null, to: null });
   };
   
+  // Define table columns
   const columns: Column<Quote>[] = [
     {
       header: t('quotes.numberColumn'),
@@ -238,6 +453,13 @@ const Quotes = () => {
             disabled: !['draft', 'sent'].includes(quote.status)
           },
           {
+            label: t('quotes.send'),
+            icon: <SendHorizontal className="h-4 w-4" />,
+            onClick: () => handleSendQuote(quote),
+            // Only allow sending of draft or sent quotes
+            disabled: !['draft', 'sent'].includes(quote.status)
+          },
+          {
             label: t('quotes.convert'),
             icon: <FilePieChart className="h-4 w-4" />,
             onClick: () => handleConvertQuote(quote),
@@ -266,6 +488,7 @@ const Quotes = () => {
     }
   ];
   
+  // Get counts for each status
   const getStatusCounts = () => {
     const counts = {
       draft: 0,
@@ -288,6 +511,7 @@ const Quotes = () => {
   
   const statusCounts = getStatusCounts();
   
+  // Define status cards
   const statusCards = [
     {
       title: t('quotes.draftStatus'),
@@ -315,6 +539,17 @@ const Quotes = () => {
     }
   ];
   
+  // Calculate conversion rate
+  const calculateConversionRate = () => {
+    const totalSent = statusCounts.sent + statusCounts.accepted + statusCounts.rejected + statusCounts.expired + statusCounts.converted;
+    const totalConverted = statusCounts.converted;
+    
+    if (totalSent === 0) return 0;
+    return (totalConverted / totalSent) * 100;
+  };
+  
+  const conversionRate = calculateConversionRate();
+  
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader 
@@ -337,7 +572,7 @@ const Quotes = () => {
       ) : (
         <>
           {/* Status Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {statusCards.map((card, index) => (
               <Card key={index} className={`${card.className} shadow-sm`}>
                 <CardHeader className="pb-2">
@@ -351,6 +586,19 @@ const Quotes = () => {
                 </CardContent>
               </Card>
             ))}
+            
+            {/* Conversion Rate Card */}
+            <Card className="bg-amber-50 border-amber-200 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex justify-between items-center">
+                  {t('quotes.conversionRate')}
+                  <span><FilePieChart className="h-8 w-8 text-amber-500" /></span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{conversionRate.toFixed(1)}%</p>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Filters */}
@@ -380,9 +628,43 @@ const Quotes = () => {
             open={isDetailsOpen}
             onOpenChange={setIsDetailsOpen}
             onEdit={selectedQuote ? () => handleEditQuote(selectedQuote) : undefined}
+            onSend={selectedQuote ? () => handleSendQuote(selectedQuote) : undefined}
             onConvert={selectedQuote ? () => handleConvertQuote(selectedQuote) : undefined}
             onDuplicate={selectedQuote ? () => handleDuplicateQuote(selectedQuote) : undefined}
             onDelete={selectedQuote ? () => handleDeleteQuote(selectedQuote) : undefined}
+          />
+          
+          {/* Quote Form Dialog */}
+          <QuoteFormDialog
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            onSubmit={handleQuoteFormSubmit}
+            quote={isCreateForm ? undefined : selectedQuote}
+            isEditing={!isCreateForm}
+          />
+          
+          {/* Send Quote Dialog */}
+          <SendQuoteDialog
+            open={isSendOpen}
+            onOpenChange={setIsSendOpen}
+            onSend={handleSendFormSubmit}
+            quote={selectedQuote}
+          />
+          
+          {/* Convert Quote Dialog */}
+          <ConvertQuoteDialog
+            open={isConvertOpen}
+            onOpenChange={setIsConvertOpen}
+            onConvert={handleConvertFormSubmit}
+            quote={selectedQuote}
+          />
+          
+          {/* Delete Quote Dialog */}
+          <DeleteQuoteDialog
+            open={isDeleteOpen}
+            onOpenChange={setIsDeleteOpen}
+            onDelete={handleConfirmDelete}
+            quote={selectedQuote}
           />
         </>
       )}

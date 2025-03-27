@@ -15,13 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import StatusBadge from '@/components/StatusBadge';
-import { Edit, Trash, Copy, FilePieChart } from 'lucide-react';
+import { Edit, Trash, Copy, FilePieChart, SendHorizontal } from 'lucide-react';
 
 interface QuoteDetailsDialogProps {
   quote: Quote | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: () => void;
+  onSend?: () => void;
   onConvert?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
@@ -32,6 +33,7 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
   open,
   onOpenChange,
   onEdit,
+  onSend,
   onConvert,
   onDuplicate,
   onDelete,
@@ -44,6 +46,8 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
   
   // Only allow editing of draft or sent quotes
   const canEdit = ['draft', 'sent'].includes(quote.status);
+  // Only allow sending of draft or resending of sent quotes
+  const canSend = ['draft', 'sent'].includes(quote.status);
   // Only allow conversion of accepted quotes
   const canConvert = quote.status === 'accepted';
   // Only allow deletion of non-converted quotes
@@ -89,6 +93,12 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
                 <span>{quote.convertedInvoiceId}</span>
               </div>
             )}
+            {quote.terms && (
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">{t('quotes.paymentTerms')}:</span>
+                <span>{quote.terms}</span>
+              </div>
+            )}
           </div>
         </div>
         
@@ -102,6 +112,7 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
                 <TableHead>{t('quotes.itemDescription')}</TableHead>
                 <TableHead className="text-right">{t('quotes.quantity')}</TableHead>
                 <TableHead className="text-right">{t('quotes.unitPrice')}</TableHead>
+                <TableHead className="text-right">{t('quotes.vatRate')}</TableHead>
                 <TableHead className="text-right">{t('quotes.discount')}</TableHead>
                 <TableHead className="text-right">{t('quotes.total')}</TableHead>
               </TableRow>
@@ -112,6 +123,7 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
                   <TableCell>{item.description}</TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                  <TableCell className="text-right">{item.vatRate}%</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.discount)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
                 </TableRow>
@@ -149,41 +161,56 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
           </div>
         )}
         
-        <DialogFooter className="sm:justify-between">
-          <div className="flex space-x-2 items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onEdit}
-              disabled={!canEdit}
-            >
-              <Edit className="h-4 w-4 mr-1" />
-              {t('form.edit')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onConvert}
-              disabled={!canConvert}
-            >
-              <FilePieChart className="h-4 w-4 mr-1" />
-              {t('quotes.convert')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDuplicate}
-            >
-              <Copy className="h-4 w-4 mr-1" />
-              {t('quotes.duplicate')}
-            </Button>
-          </div>
+        <DialogFooter className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            disabled={!canEdit}
+            className="w-full"
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            {t('form.edit')}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSend}
+            disabled={!canSend}
+            className="w-full"
+          >
+            <SendHorizontal className="h-4 w-4 mr-1" />
+            {t('quotes.send')}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onConvert}
+            disabled={!canConvert}
+            className="w-full"
+          >
+            <FilePieChart className="h-4 w-4 mr-1" />
+            {t('quotes.convert')}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDuplicate}
+            className="w-full"
+          >
+            <Copy className="h-4 w-4 mr-1" />
+            {t('quotes.duplicate')}
+          </Button>
           
           <Button
             variant="destructive"
             size="sm"
             onClick={onDelete}
             disabled={!canDelete}
+            className="w-full col-span-2 sm:col-span-4 mt-2"
           >
             <Trash className="h-4 w-4 mr-1" />
             {t('form.delete')}
