@@ -75,14 +75,14 @@ const QuoteFilters: React.FC<QuoteFiltersProps> = ({
           <div>
             <label className="text-sm font-medium block mb-2">{t('quotes.statusFilter')}</label>
             <Select
-              value={status || ''}
-              onValueChange={(value) => setStatus(value || null)}
+              value={status || 'all'}
+              onValueChange={(value) => setStatus(value === 'all' ? null : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t('quotes.allStatuses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('quotes.allStatuses')}</SelectItem>
+                <SelectItem value="all">{t('quotes.allStatuses')}</SelectItem>
                 {statusOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -96,14 +96,14 @@ const QuoteFilters: React.FC<QuoteFiltersProps> = ({
           <div>
             <label className="text-sm font-medium block mb-2">{t('quotes.clientFilter')}</label>
             <Select
-              value={clientId || ''}
-              onValueChange={(value) => setClientId(value || null)}
+              value={clientId || 'all'}
+              onValueChange={(value) => setClientId(value === 'all' ? null : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t('quotes.allClients')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('quotes.allClients')}</SelectItem>
+                <SelectItem value="all">{t('quotes.allClients')}</SelectItem>
                 {mockClients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
