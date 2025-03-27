@@ -12,6 +12,11 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Invoices from "./pages/Invoices";
+import Products from "./pages/Products";
+import Quotes from "./pages/Quotes";
+import Payments from "./pages/Payments";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -33,13 +38,11 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/invoices" element={<Invoices />} />
-                
-                {/* Add other routes here */}
-                {/* <Route path="/products" element={<Products />} /> */}
-                {/* <Route path="/quotes" element={<Quotes />} /> */}
-                {/* <Route path="/payments" element={<Payments />} /> */}
-                {/* <Route path="/reports" element={<Reports />} /> */}
-                {/* <Route path="/settings" element={<Settings />} /> */}
+                <Route path="/products" element={<Products />} />
+                <Route path="/quotes" element={<Quotes />} />
+                <Route path="/payments" element={<Payments />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
               
               {/* Redirects */}
