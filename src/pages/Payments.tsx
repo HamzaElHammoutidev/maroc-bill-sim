@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +38,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 import {
@@ -103,7 +103,29 @@ const Payments = () => {
   // Function to download receipt
   const handleDownloadReceipt = (format: string, payment: typeof mockPayments[0]) => {
     setIsDownloadMenuOpen(false);
+    setDownloadPayment(null);
     toast.success(`${t('payments.downloaded')} ${payment.transactionId} as ${format}`);
+  };
+
+  // Function to handle dialog close properly
+  const handleCloseViewPayment = () => {
+    setViewPayment(null);
+  };
+
+  // Function to handle invoice dialog close properly
+  const handleCloseViewInvoice = () => {
+    setViewInvoice(null);
+  };
+
+  // Function to handle alert dialog close properly
+  const handleCloseDeleteDialog = () => {
+    setDeletePaymentId(null);
+  };
+
+  // Function to handle download popover close properly
+  const handleCloseDownloadMenu = () => {
+    setIsDownloadMenuOpen(false);
+    setDownloadPayment(null);
   };
 
   // Function to delete payment
@@ -247,8 +269,8 @@ const Payments = () => {
         tableClassName="border-collapse border-spacing-0"
       />
 
-      {/* Payment View Dialog */}
-      <Dialog open={!!viewPayment} onOpenChange={() => setViewPayment(null)}>
+      {/* Payment View Dialog - Using forceMount={false} to ensure proper cleanup */}
+      <Dialog open={!!viewPayment} onOpenChange={handleCloseViewPayment}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t('payments.payment_details')}</DialogTitle>
@@ -289,13 +311,13 @@ const Payments = () => {
           )}
           
           <DialogFooter>
-            <Button onClick={() => setViewPayment(null)}>{t('common.close')}</Button>
+            <Button onClick={handleCloseViewPayment}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Invoice View Dialog */}
-      <Dialog open={!!viewInvoice} onOpenChange={() => setViewInvoice(null)}>
+      <Dialog open={!!viewInvoice} onOpenChange={handleCloseViewInvoice}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t('invoices.invoice_details')}</DialogTitle>
@@ -314,14 +336,14 @@ const Payments = () => {
           </div>
           
           <DialogFooter>
-            <Button onClick={() => setViewInvoice(null)}>{t('common.close')}</Button>
+            <Button onClick={handleCloseViewInvoice}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Receipt Download Popover */}
-      <Popover open={isDownloadMenuOpen} onOpenChange={setIsDownloadMenuOpen}>
-        <PopoverContent className="w-56 p-0">
+      <Popover open={isDownloadMenuOpen} onOpenChange={handleCloseDownloadMenu}>
+        <PopoverContent className="w-56 p-0" side="bottom" align="end">
           <div className="p-3">
             <h4 className="font-medium text-sm mb-1">{t('payments.select_format')}</h4>
             <p className="text-xs text-muted-foreground mb-2">{t('payments.download_description')}</p>
@@ -346,7 +368,7 @@ const Payments = () => {
       </Popover>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletePaymentId} onOpenChange={(open) => !open && setDeletePaymentId(null)}>
+      <AlertDialog open={!!deletePaymentId} onOpenChange={handleCloseDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('payments.confirm_delete')}</AlertDialogTitle>
@@ -355,7 +377,7 @@ const Payments = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleCloseDeleteDialog}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
