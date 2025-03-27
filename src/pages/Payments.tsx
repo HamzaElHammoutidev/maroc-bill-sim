@@ -282,7 +282,7 @@ const Payments = () => {
                 </div>
                 <div className="flex flex-col col-span-2">
                   <span className="text-sm text-muted-foreground">{t('payments.payment_note')}</span>
-                  <span className="font-medium">{viewPayment.note || t('payments.no_note')}</span>
+                  <span className="font-medium">{viewPayment.notes || t('payments.no_note')}</span>
                 </div>
               </div>
             </div>
