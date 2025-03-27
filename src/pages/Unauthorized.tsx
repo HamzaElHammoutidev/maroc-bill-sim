@@ -3,26 +3,29 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
+import { Shield } from 'lucide-react';
 
-const NotFound = () => {
+const Unauthorized = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
       <div className="text-center max-w-md px-4 animate-fade-in">
-        <h1 className="text-9xl font-bold text-primary">404</h1>
-        <h2 className="mt-4 text-2xl font-bold">{t('notfound.title')}</h2>
-        <p className="mt-2 text-muted-foreground">{t('notfound.message')}</p>
+        <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6">
+          <Shield className="h-12 w-12 text-red-600" />
+        </div>
+        <h1 className="text-3xl font-bold">{t('unauthorized.title')}</h1>
+        <p className="mt-4 text-muted-foreground">{t('unauthorized.message')}</p>
         <Button 
           className="mt-8 px-6 shadow-lg hover:shadow-xl transition-all"
           onClick={() => navigate('/dashboard')}
         >
-          {t('notfound.back')}
+          {t('unauthorized.back')}
         </Button>
       </div>
     </div>
   );
 };
 
-export default NotFound;
+export default Unauthorized;
