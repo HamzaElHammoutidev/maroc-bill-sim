@@ -4,9 +4,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/components/PageHeader';
 import { formatCurrency } from '@/lib/utils';
-import { PieChart, BarChart, Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChartIcon, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import { LineChart, BarChart3, PieChart } from 'lucide-react';
 
 const Reports = () => {
   const { t } = useLanguage();
@@ -18,7 +18,7 @@ const Reports = () => {
       <PageHeader 
         title={t('reports.title')}
         description={t('reports.description')}
-        icon={<ChartIcon className="h-4 w-4" />}
+        icon={<LineChart className="h-4 w-4" />}
       />
       
       <Card className="mb-8 shadow-sm">
@@ -56,7 +56,7 @@ const Reports = () => {
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <PieChartIcon className="h-5 w-5 text-muted-foreground" />
+                <PieChart className="h-5 w-5 text-muted-foreground" />
                 {t('reports.summary_title')}
               </CardTitle>
             </CardHeader>

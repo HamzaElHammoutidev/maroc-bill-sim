@@ -1,4 +1,3 @@
-
 // This file contains all the mock data for the application
 
 import { User, UserRole } from "../contexts/AuthContext";
@@ -51,6 +50,7 @@ export interface Product {
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled';
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted';
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export interface InvoiceItem {
   id: string;
@@ -109,11 +109,13 @@ export interface Payment {
   id: string;
   companyId: string;
   invoiceId: string;
+  transactionId?: string;
   amount: number;
   date: string;
   method: 'cash' | 'bank' | 'check' | 'other';
   reference?: string;
   notes?: string;
+  status: PaymentStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -529,11 +531,13 @@ export const mockPayments: Payment[] = [
     id: '601',
     companyId: '101',
     invoiceId: '401',
+    transactionId: 'TXN-001',
     amount: 27800,
     date: '2023-05-20T00:00:00Z',
     method: 'bank',
     reference: 'VIR-123456',
     notes: 'Paiement reçu par virement',
+    status: 'completed',
     createdAt: '2023-05-20T15:30:00Z',
     updatedAt: '2023-05-20T15:30:00Z'
   },
@@ -541,11 +545,13 @@ export const mockPayments: Payment[] = [
     id: '602',
     companyId: '101',
     invoiceId: '403',
+    transactionId: 'TXN-002',
     amount: 40000,
     date: '2023-07-30T00:00:00Z',
     method: 'check',
     reference: 'CHQ-789012',
     notes: 'Acompte 50%',
+    status: 'completed',
     createdAt: '2023-07-30T10:15:00Z',
     updatedAt: '2023-07-30T10:15:00Z'
   }
