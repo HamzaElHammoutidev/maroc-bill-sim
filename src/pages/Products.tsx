@@ -4,11 +4,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ShoppingBag } from 'lucide-react';
 import { mockProducts, Product } from '@/data/mockData';
 import { formatCurrency } from '@/lib/utils';
+import DataTable, { Column } from '@/components/DataTable/DataTable';
 
 const Products = () => {
   const { t } = useLanguage();
@@ -32,6 +31,46 @@ const Products = () => {
       description: t('products.addToastDesc'),
     });
   };
+
+  const columns: Column<Product>[] = [
+    {
+      header: t('products.nameColumn'),
+      accessorKey: 'name',
+      enableSorting: true,
+      cellClassName: 'font-medium'
+    },
+    {
+      header: t('products.descriptionColumn'),
+      accessorKey: 'description',
+      cellClassName: 'max-w-xs truncate'
+    },
+    {
+      header: t('products.priceColumn'),
+      accessorKey: 'price',
+      enableSorting: true,
+      cell: (product) => formatCurrency(product.price)
+    },
+    {
+      header: t('products.vatColumn'),
+      accessorKey: 'vatRate',
+      enableSorting: true,
+      cell: (product) => `${product.vatRate}%`
+    },
+    {
+      header: t('products.typeColumn'),
+      accessorKey: 'isService',
+      enableSorting: true,
+      cell: (product) => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          product.isService 
+            ? 'bg-purple-100 text-purple-800' 
+            : 'bg-blue-100 text-blue-800'
+        }`}>
+          {product.isService ? t('products.service') : t('products.product')}
+        </span>
+      )
+    }
+  ];
   
   return (
     <div className="space-y-6 animate-fade-in">
@@ -54,52 +93,23 @@ const Products = () => {
           </div>
         </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5" />
-              <span>{t('products.cardTitle')}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {products.length === 0 ? (
-              <p className="text-muted-foreground">{t('products.emptyState')}</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('products.nameColumn')}</TableHead>
-                      <TableHead>{t('products.descriptionColumn')}</TableHead>
-                      <TableHead>{t('products.priceColumn')}</TableHead>
-                      <TableHead>{t('products.vatColumn')}</TableHead>
-                      <TableHead>{t('products.typeColumn')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product) => (
-                      <TableRow key={product.id} className="cursor-pointer hover:bg-muted/50">
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell className="max-w-xs truncate">{product.description}</TableCell>
-                        <TableCell>{formatCurrency(product.price)}</TableCell>
-                        <TableCell>{product.vatRate}%</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.isService 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {product.isService ? t('products.service') : t('products.product')}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <DataTable
+          data={products}
+          columns={columns}
+          searchPlaceholder={t('products.search')}
+          searchKey="name"
+          noResultsMessage={t('products.noResults')}
+          noDataMessage={t('products.emptyState')}
+          title={t('products.cardTitle')}
+          initialSortField="name"
+          initialSortDirection="asc"
+          onRowClick={(product) => {
+            toast({
+              title: t('products.viewToast'),
+              description: `${t('products.viewToastDesc')} ${product.name}`
+            });
+          }}
+        />
       )}
     </div>
   );

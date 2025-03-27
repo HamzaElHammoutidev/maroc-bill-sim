@@ -5,15 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { mockClients, Client } from '@/data/mockData';
 import PageHeader from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -21,26 +12,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
-import { Search, MoreHorizontal, Edit, Trash, Eye } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Edit, Trash, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import DataTable, { Column } from '@/components/DataTable/DataTable';
+import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
 
 const Clients = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const companyId = user?.companyId || '101'; // Default for demo
   
-  const [searchQuery, setSearchQuery] = useState('');
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [clients, setClients] = useState(mockClients);
   
@@ -57,18 +41,6 @@ const Clients = () => {
     email: '',
     contactName: ''
   });
-  
-  // Filter clients by search query and company ID
-  const filteredClients = clients
-    .filter(client => client.companyId === companyId)
-    .filter(client => 
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.ice?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.if?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.rc?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.phone.toLowerCase().includes(searchQuery.toLowerCase())
-    );
   
   const handleAddClient = () => {
     // Validate form
@@ -111,6 +83,87 @@ const Clients = () => {
     const { name, value } = e.target;
     setNewClient(prev => ({ ...prev, [name]: value }));
   };
+
+  const columns: Column<Client>[] = [
+    {
+      header: t('clients.name'),
+      accessorKey: 'name',
+      enableSorting: true,
+      cell: (client) => (
+        <div>
+          <div className="font-medium">{client.name}</div>
+          {client.contactName && (
+            <div className="text-sm text-muted-foreground">{client.contactName}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      header: t('clients.ice'),
+      accessorKey: 'ice',
+      enableSorting: true,
+      cell: (client) => client.ice || '-'
+    },
+    {
+      header: t('clients.if'),
+      accessorKey: 'if',
+      enableSorting: true,
+      cell: (client) => client.if || '-'
+    },
+    {
+      header: t('clients.email'),
+      accessorKey: 'email',
+      enableSorting: true,
+      cell: (client) => client.email || '-'
+    },
+    {
+      header: t('clients.phone'),
+      accessorKey: 'phone',
+      enableSorting: true
+    },
+    {
+      header: t('clients.city'),
+      accessorKey: 'city',
+      enableSorting: true
+    },
+    {
+      header: t('clients.actions'),
+      accessorKey: 'id',
+      cell: (client) => {
+        const actions: ActionItem[] = [
+          {
+            label: t('form.view'),
+            icon: <Eye className="h-4 w-4" />,
+            onClick: () => {
+              toast.info(`${t('clients.viewing')} ${client.name}`);
+            }
+          },
+          {
+            label: t('form.edit'),
+            icon: <Edit className="h-4 w-4" />,
+            onClick: () => {
+              toast.info(`${t('clients.editing')} ${client.name}`);
+            }
+          },
+          {
+            label: t('form.delete'),
+            icon: <Trash className="h-4 w-4" />,
+            onClick: () => {
+              toast.error(`${t('clients.deleting')} ${client.name}`);
+            },
+            className: 'text-destructive'
+          }
+        ];
+        
+        return <TableActions actions={actions} label={t('common.actions')} />;
+      },
+      className: 'text-center',
+      cellClassName: 'text-center'
+    }
+  ];
+
+  // Filter clients by company ID
+  const filteredClients = clients.filter(client => client.companyId === companyId);
   
   return (
     <div className="staggered-fade-in">
@@ -122,91 +175,17 @@ const Clients = () => {
         }}
       />
       
-      <Card className="mb-8 shadow-sm">
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={t('clients.search')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full border rounded-lg shadow-sm">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-4 py-3 text-left">{t('clients.name')}</th>
-              <th className="px-4 py-3 text-left">{t('clients.ice')}</th>
-              <th className="px-4 py-3 text-left">{t('clients.if')}</th>
-              <th className="px-4 py-3 text-left">{t('clients.email')}</th>
-              <th className="px-4 py-3 text-left">{t('clients.phone')}</th>
-              <th className="px-4 py-3 text-left">{t('clients.city')}</th>
-              <th className="px-4 py-3 text-center">{t('clients.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredClients.length > 0 ? (
-              filteredClients.map((client) => (
-                <tr 
-                  key={client.id}
-                  className="border-t hover:bg-muted/20 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="font-medium">{client.name}</div>
-                      {client.contactName && (
-                        <div className="text-sm text-muted-foreground">{client.contactName}</div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{client.ice || '-'}</td>
-                  <td className="px-4 py-3">{client.if || '-'}</td>
-                  <td className="px-4 py-3">{client.email || '-'}</td>
-                  <td className="px-4 py-3">{client.phone}</td>
-                  <td className="px-4 py-3">{client.city}</td>
-                  <td className="px-4 py-3 text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" />
-                          {t('form.view')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          {t('form.edit')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash className="mr-2 h-4 w-4" />
-                          {t('form.delete')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                  {searchQuery ? t('clients.no_results') : t('clients.no_clients')}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={filteredClients}
+        columns={columns}
+        searchPlaceholder={t('clients.search')}
+        searchKey="name"
+        noResultsMessage={t('clients.no_results')}
+        noDataMessage={t('clients.no_clients')}
+        initialSortField="name"
+        initialSortDirection="asc"
+        cardClassName="shadow-sm"
+      />
       
       {/* Add Client Dialog */}
       <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>

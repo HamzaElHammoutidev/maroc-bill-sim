@@ -4,12 +4,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText, Calendar } from 'lucide-react';
 import { mockQuotes, Quote, getClientById } from '@/data/mockData';
 import { formatCurrency } from '@/lib/utils';
 import StatusBadge from '@/components/StatusBadge';
+import DataTable, { Column } from '@/components/DataTable/DataTable';
 
 const Quotes = () => {
   const { t } = useLanguage();
@@ -37,6 +36,60 @@ const Quotes = () => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
+
+  const columns: Column<Quote>[] = [
+    {
+      header: t('quotes.numberColumn'),
+      accessorKey: 'quoteNumber',
+      enableSorting: true,
+      cellClassName: 'font-medium'
+    },
+    {
+      header: t('quotes.clientColumn'),
+      accessorKey: 'clientId',
+      enableSorting: true,
+      cell: (quote) => {
+        const client = getClientById(quote.clientId);
+        return client?.name || t('quotes.unknownClient');
+      }
+    },
+    {
+      header: t('quotes.dateColumn'),
+      accessorKey: 'date',
+      enableSorting: true,
+      cell: (quote) => (
+        <div className="flex items-center gap-1 whitespace-nowrap">
+          <Calendar className="h-3 w-3 text-muted-foreground" />
+          {formatDate(quote.date)}
+        </div>
+      )
+    },
+    {
+      header: t('quotes.expiryColumn'),
+      accessorKey: 'expiryDate',
+      enableSorting: true,
+      cell: (quote) => (
+        <div className="flex items-center gap-1 whitespace-nowrap">
+          <Calendar className="h-3 w-3 text-muted-foreground" />
+          {formatDate(quote.expiryDate)}
+        </div>
+      )
+    },
+    {
+      header: t('quotes.totalColumn'),
+      accessorKey: 'total',
+      enableSorting: true,
+      cell: (quote) => formatCurrency(quote.total)
+    },
+    {
+      header: t('quotes.statusColumn'),
+      accessorKey: 'status',
+      enableSorting: true,
+      cell: (quote) => (
+        <StatusBadge status={quote.status} type="quote" />
+      )
+    }
+  ];
   
   return (
     <div className="space-y-6 animate-fade-in">
@@ -58,61 +111,23 @@ const Quotes = () => {
           </div>
         </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              <span>{t('quotes.recentTitle')}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {quotes.length === 0 ? (
-              <p className="text-muted-foreground">{t('quotes.emptyState')}</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('quotes.numberColumn')}</TableHead>
-                      <TableHead>{t('quotes.clientColumn')}</TableHead>
-                      <TableHead>{t('quotes.dateColumn')}</TableHead>
-                      <TableHead>{t('quotes.expiryColumn')}</TableHead>
-                      <TableHead>{t('quotes.totalColumn')}</TableHead>
-                      <TableHead>{t('quotes.statusColumn')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {quotes.map((quote) => {
-                      const client = getClientById(quote.clientId);
-                      return (
-                        <TableRow key={quote.id} className="cursor-pointer hover:bg-muted/50">
-                          <TableCell className="font-medium">{quote.quoteNumber}</TableCell>
-                          <TableCell>{client?.name || t('quotes.unknownClient')}</TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              {formatDate(quote.date)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              {formatDate(quote.expiryDate)}
-                            </div>
-                          </TableCell>
-                          <TableCell>{formatCurrency(quote.total)}</TableCell>
-                          <TableCell>
-                            <StatusBadge status={quote.status} type="quote" />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <DataTable
+          data={quotes}
+          columns={columns}
+          searchPlaceholder={t('quotes.search')}
+          searchKey="quoteNumber"
+          noResultsMessage={t('quotes.noResults')}
+          noDataMessage={t('quotes.emptyState')}
+          title={t('quotes.recentTitle')}
+          initialSortField="date"
+          initialSortDirection="desc"
+          onRowClick={(quote) => {
+            toast({
+              title: t('quotes.viewToast'),
+              description: `${t('quotes.viewToastDesc')} ${quote.quoteNumber}`
+            });
+          }}
+        />
       )}
     </div>
   );
