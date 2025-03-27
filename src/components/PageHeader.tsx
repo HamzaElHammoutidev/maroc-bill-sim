@@ -11,9 +11,10 @@ interface PageHeaderProps {
     label: string;
     onClick: () => void;
   };
+  icon?: React.ReactNode;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, description, action }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ title, description, action, icon }) => {
   const { t } = useLanguage();
   
   return (
@@ -29,7 +30,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, description, action }) =
           className="mt-4 md:mt-0 animate-slide-in shadow-md hover:shadow-lg transition-all" 
           onClick={action.onClick}
         >
-          <Plus className="mr-2 h-4 w-4" />
+          {icon || <Plus className="mr-2 h-4 w-4" />}
           {t(action.label)}
         </Button>
       )}

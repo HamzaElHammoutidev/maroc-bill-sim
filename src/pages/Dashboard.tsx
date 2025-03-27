@@ -1,16 +1,18 @@
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getInvoiceStats, getTopClients, mockInvoices, mockClients } from '@/data/mockData';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { 
   BarChart, 
@@ -30,23 +32,73 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  Users
+  Users,
+  RefreshCcw,
+  Eye,
+  Edit,
+  Trash,
+  Download
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { toast } = useToast();
   
   const companyId = user?.companyId || '101'; // Default for demo
-  const stats = getInvoiceStats(companyId);
-  const topClients = getTopClients(companyId);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(false);
+  
+  // Get data with the refreshKey dependency
+  const stats = React.useMemo(() => getInvoiceStats(companyId), [companyId, refreshKey]);
+  const topClients = React.useMemo(() => getTopClients(companyId), [companyId, refreshKey]);
   
   // Recent invoices - just the last 5
-  const recentInvoices = [...mockInvoices]
-    .filter(invoice => invoice.companyId === companyId)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  const recentInvoices = React.useMemo(() => 
+    [...mockInvoices]
+      .filter(invoice => invoice.companyId === companyId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5),
+    [companyId, refreshKey]
+  );
+  
+  // Function to refresh data
+  const refreshData = useCallback(() => {
+    setLoading(true);
+    // Simulate API call with timeout
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+      setLoading(false);
+      toast({
+        title: t('dashboard.data_refreshed'),
+        description: t('dashboard.refresh_success'),
+      });
+    }, 800);
+  }, [toast, t]);
+  
+  // Function to view invoice details (mock for now)
+  const viewInvoice = useCallback((invoiceId: string) => {
+    toast({
+      title: t('invoices.view'),
+      description: `${t('invoices.viewing')} #${invoiceId}`,
+    });
+  }, [toast, t]);
+  
+  // Function to download invoice (mock for now)
+  const downloadInvoice = useCallback((invoiceId: string) => {
+    toast({
+      title: t('invoices.download'),
+      description: `${t('invoices.downloading')} #${invoiceId}`,
+    });
+  }, [toast, t]);
   
   // COLORS
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -56,6 +108,11 @@ const Dashboard = () => {
       <PageHeader 
         title={t('dashboard.title')} 
         description={t('dashboard.welcome')}
+        action={{
+          label: 'dashboard.refresh',
+          onClick: refreshData
+        }}
+        icon={<RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}
       />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -88,9 +145,15 @@ const Dashboard = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <Card className="lg:col-span-2 shadow-sm hover:shadow-md transition-all">
-          <CardHeader className="pb-2">
-            <CardTitle>{t('dashboard.monthly_revenue')}</CardTitle>
-            <CardDescription>{t('dashboard.revenue_description')}</CardDescription>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{t('dashboard.monthly_revenue')}</CardTitle>
+              <CardDescription>{t('dashboard.revenue_description')}</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshData} disabled={loading}>
+              <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              {t('common.refresh')}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -140,9 +203,15 @@ const Dashboard = () => {
         </Card>
         
         <Card className="shadow-sm hover:shadow-md transition-all">
-          <CardHeader className="pb-2">
-            <CardTitle>{t('dashboard.top_clients')}</CardTitle>
-            <CardDescription>{t('dashboard.clients_description')}</CardDescription>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{t('dashboard.top_clients')}</CardTitle>
+              <CardDescription>{t('dashboard.clients_description')}</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshData} disabled={loading}>
+              <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              {t('common.refresh')}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="h-80 flex justify-center items-center">
@@ -181,9 +250,15 @@ const Dashboard = () => {
       </div>
       
       <Card className="shadow-sm hover:shadow-md transition-all">
-        <CardHeader>
-          <CardTitle>{t('dashboard.recent_activity')}</CardTitle>
-          <CardDescription>{t('dashboard.activity_description')}</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>{t('dashboard.recent_activity')}</CardTitle>
+            <CardDescription>{t('dashboard.activity_description')}</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={refreshData} disabled={loading}>
+            <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {t('common.refresh')}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -195,6 +270,7 @@ const Dashboard = () => {
                   <th className="text-left py-3 px-4 font-medium">{t('invoices.date')}</th>
                   <th className="text-left py-3 px-4 font-medium">{t('invoices.amount')}</th>
                   <th className="text-left py-3 px-4 font-medium">{t('invoices.status')}</th>
+                  <th className="text-left py-3 px-4 font-medium">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,6 +295,74 @@ const Dashboard = () => {
                       <td className="py-3 px-4 text-sm">
                         <StatusBadge status={invoice.status} type="invoice" />
                       </td>
+                      <td className="py-3 px-4 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => viewInvoice(invoice.id)}
+                            title={t('common.view')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => downloadInvoice(invoice.id)}
+                            title={t('common.download')}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="lucide lucide-more-vertical"
+                                >
+                                  <circle cx="12" cy="12" r="1" />
+                                  <circle cx="12" cy="5" r="1" />
+                                  <circle cx="12" cy="19" r="1" />
+                                </svg>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  toast({
+                                    title: t('invoices.edit'),
+                                    description: `${t('invoices.editing')} #${invoice.invoiceNumber}`,
+                                  });
+                                }}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>{t('common.edit')}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => {
+                                  toast({
+                                    title: t('invoices.delete'),
+                                    description: `${t('invoices.delete_confirmation')} #${invoice.invoiceNumber}`,
+                                    variant: "destructive"
+                                  });
+                                }}
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                <span>{t('common.delete')}</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -226,6 +370,23 @@ const Dashboard = () => {
             </table>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-between border-t px-6 py-4">
+          <div className="text-sm text-muted-foreground">
+            {t('common.showing')} {recentInvoices.length} {t('common.of')} {mockInvoices.filter(invoice => invoice.companyId === companyId).length} {t('invoices.title')}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              toast({
+                title: t('common.view_all'),
+                description: t('invoices.view_all_redirect'),
+              });
+            }}
+          >
+            {t('common.view_all')}
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
