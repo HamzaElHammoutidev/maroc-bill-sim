@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,15 @@ import {
   Settings, 
   Moon, 
   Sun,
+  BarChart2,
+  Users,
+  ShoppingBag,
+  Package,
+  FileText,
+  FileMinus,
+  CreditCard,
+  Receipt,
+  PieChart,
   Languages as LanguagesIcon
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
@@ -41,12 +51,12 @@ const NavItem = ({ to, icon: Icon, label, active }: { to: string; icon: React.El
   return (
     <Link 
       to={to} 
-      className={t(
-        "flex items-center px-4 py-3 text-sm transition-all duration-200 rounded-md",
-        active 
+      className={`
+        flex items-center px-4 py-3 text-sm transition-all duration-200 rounded-md
+        ${active 
           ? "bg-primary/10 text-primary font-medium" 
-          : "text-foreground/60 hover:bg-accent hover:text-foreground"
-      )}
+          : "text-foreground/60 hover:bg-accent hover:text-foreground"}
+      `}
     >
       <Icon className="w-5 h-5 mr-3" />
       <span>{t(label)}</span>
@@ -124,7 +134,7 @@ const Navbar: React.FC = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-1">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.avatarUrl} alt={user?.name || 'User'} />
+                    <AvatarImage src={user?.avatar} alt={user?.name || 'User'} />
                     <AvatarFallback>
                       {user?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
@@ -173,12 +183,7 @@ const Navbar: React.FC = () => {
           <SheetHeader className="p-4 border-b">
             <SheetTitle className="text-xl font-bold">MarocBill</SheetTitle>
           </SheetHeader>
-          <div 
-            className={
-              mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-              "flex flex-col h-full"
-            }
-          >
+          <div className="flex flex-col h-full">
             <div className="flex-1 overflow-y-auto">
               <div className="py-4 px-2 space-y-1">
                 <div className="px-2 py-3">

@@ -68,7 +68,6 @@ import {
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-// Form validation schema
 const formSchema = z.object({
   invoiceId: z.string(),
   creditNoteNumber: z.string().min(1, 'Credit note number is required'),
@@ -85,6 +84,7 @@ const formSchema = z.object({
       vatRate: z.number().min(0),
       discount: z.number().min(0),
       total: z.number().min(0),
+      selected: z.boolean().optional(),
     })
   ),
 });
@@ -119,7 +119,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
   
   const isEditing = !!creditNote;
   
-  // Initialize form with either provided credit note or defaults
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -132,33 +131,28 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     }
   });
   
-  // Generate a credit note number
   function generateCreditNoteNumber() {
     const year = new Date().getFullYear();
     const nextNumber = 1; // In real app, would get the next available number
     return `AVO-${year}-${String(nextNumber).padStart(4, '0')}`;
   }
   
-  // Load available invoices that can have credit notes
   useEffect(() => {
     const eligibleInvoices = mockInvoices.filter(
       inv => inv.status === 'sent' || inv.status === 'paid' || inv.status === 'partial'
     );
     setAvailableInvoices(eligibleInvoices);
     
-    // If editing or specific invoice provided, load that invoice
     if (invoiceId || creditNote?.invoiceId) {
       const targetInvoiceId = invoiceId || creditNote?.invoiceId;
       const invoice = mockInvoices.find(inv => inv.id === targetInvoiceId);
       if (invoice) {
         setSourceInvoice(invoice);
         
-        // If editing, set item selection based on credit note items
         if (creditNote) {
           const selection: Record<string, boolean> = {};
           invoice.items.forEach(item => {
             const creditNoteItem = creditNote.items.find(cni => {
-              // Match by either ID if available or by product and price
               return (cni.id === item.id) || 
                 (cni.productId === item.productId && cni.unitPrice === item.unitPrice);
             });
@@ -172,12 +166,9 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     setIsLoading(false);
   }, [invoiceId, creditNote]);
   
-  // When source invoice changes, update form items
   useEffect(() => {
     if (sourceInvoice) {
-      // Map invoice items to form items
       const formItems = sourceInvoice.items.map(item => {
-        // If editing, find matching item in credit note
         let quantity = item.quantity;
         let selected = false;
         
@@ -205,14 +196,12 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     }
   }, [sourceInvoice, form, creditNote]);
   
-  // Toggle item selection
   const handleItemToggle = (itemId: string, checked: boolean) => {
     setItemSelection(prev => ({
       ...prev,
       [itemId]: checked
     }));
     
-    // Update the form values
     const currentItems = form.getValues('items');
     const updatedItems = currentItems.map(item => {
       if (item.id === itemId) {
@@ -224,7 +213,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     form.setValue('items', updatedItems);
   };
   
-  // Update item quantity
   const handleQuantityChange = (itemId: string, quantity: number) => {
     const currentItems = form.getValues('items');
     const updatedItems = currentItems.map(item => {
@@ -238,7 +226,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     form.setValue('items', updatedItems);
   };
   
-  // Handle invoice selection change
   const handleInvoiceChange = (invoiceId: string) => {
     const invoice = mockInvoices.find(inv => inv.id === invoiceId);
     if (invoice) {
@@ -246,7 +233,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     }
   };
   
-  // Calculate totals
   const calculateTotals = () => {
     const items = form.getValues('items');
     const selectedItems = items.filter(item => item.selected);
@@ -260,20 +246,16 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
   
   const { subtotal, vatAmount, total } = calculateTotals();
   
-  // Handle form submission
   const onFormSubmit = (values: FormValues) => {
     setIsLoading(true);
     
-    // Filter only selected items
     const selectedItems = values.items.filter(item => item.selected);
     
     if (selectedItems.length === 0) {
       setIsLoading(false);
-      // Show an error message
       return;
     }
     
-    // Create credit note data
     const creditNoteData: Omit<CreditNote, 'id' | 'createdAt' | 'updatedAt'> = {
       companyId,
       clientId: sourceInvoice?.clientId || '',
@@ -305,18 +287,14 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
       applications: []
     };
     
-    // Create the credit note
     const newCreditNote = createCreditNote(creditNoteData);
     
-    // Notify parent component
     onSubmit(newCreditNote);
     
-    // Close dialog
     onOpenChange(false);
     setIsLoading(false);
   };
   
-  // Get reason icon
   const getReasonIcon = (reason: CreditNoteReason) => {
     switch (reason) {
       case 'return':
@@ -332,7 +310,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
     }
   };
   
-  // Update the reason options array
   const reasonOptions = [
     { value: 'defective', label: t('credit_notes.reason_defective') },
     { value: 'mistake', label: t('credit_notes.reason_mistake') },
@@ -362,7 +339,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Invoice selection - only for new credit notes without a pre-selected invoice */}
               {!isEditing && !invoiceId && (
                 <FormField
                   control={form.control}
@@ -396,7 +372,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                 />
               )}
               
-              {/* If invoice is selected or editing, show invoice details */}
               {(sourceInvoice || isEditing) && (
                 <div className="col-span-1 border rounded-md p-4 bg-muted/20">
                   <h3 className="font-medium mb-2">{t('credit_notes.invoice_details')}</h3>
@@ -413,7 +388,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                 </div>
               )}
               
-              {/* Credit Note Number */}
               <FormField
                 control={form.control}
                 name="creditNoteNumber"
@@ -428,7 +402,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                 )}
               />
               
-              {/* Date */}
               <FormField
                 control={form.control}
                 name="date"
@@ -457,7 +430,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={field.value ? new Date(field.value) : undefined}
                           onSelect={field.onChange}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
@@ -471,7 +444,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                 )}
               />
               
-              {/* Reason */}
               <FormField
                 control={form.control}
                 name="reason"
@@ -500,7 +472,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                 )}
               />
               
-              {/* Notes */}
               <FormField
                 control={form.control}
                 name="notes"
@@ -519,7 +490,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
               />
             </div>
             
-            {/* Items Table */}
             <div className="space-y-4">
               <h3 className="font-medium">{t('credit_notes.select_items')}</h3>
               
@@ -566,7 +536,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                                   handleQuantityChange(item.id, parseFloat(e.target.value) || 0)
                                 }
                                 min={0}
-                                max={item.quantity} // Cannot exceed original quantity
+                                max={item.quantity}
                                 step={product?.isService ? 0.25 : 1}
                                 disabled={!itemSelection[item.id]}
                               />
@@ -591,7 +561,6 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
                 </div>
               )}
               
-              {/* Totals */}
               {sourceInvoice && (
                 <div className="flex flex-col gap-2 items-end">
                   <div className="flex justify-between w-64">
@@ -634,4 +603,4 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
   );
 };
 
-export default CreditNoteForm; 
+export default CreditNoteForm;

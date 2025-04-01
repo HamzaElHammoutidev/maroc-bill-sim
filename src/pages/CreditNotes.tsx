@@ -48,6 +48,7 @@ const CreditNotes = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCreateForm, setIsCreateForm] = useState(true);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   
   useEffect(() => {
     if (invoiceId) {
@@ -183,7 +184,7 @@ const CreditNotes = () => {
   const remainingCreditAmount = calculateRemainingCreditAmount();
   
   return (
-    <div className="staggered-fade-in">
+    <div>
       <PageHeader 
         title={t('credit_notes.title')} 
         description={t('credit_notes.description')}
@@ -259,13 +260,15 @@ const CreditNotes = () => {
         invoiceId={invoiceId || undefined}
       />
       
-      <CreditNoteDetailsDialog
-        creditNoteId={selectedCreditNote?.id || null}
-        open={isDetailsOpen}
-        onOpenChange={setIsDetailsOpen}
-        onEdit={handleEditCreditNote}
-        onApply={handleApplyCreditNote}
-      />
+      {selectedCreditNote && (
+        <CreditNoteDetailsDialog
+          creditNote={selectedCreditNote}
+          open={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
+          onEdit={handleEditCreditNote}
+          onApply={handleApplyCreditNote}
+        />
+      )}
     </div>
   );
 };

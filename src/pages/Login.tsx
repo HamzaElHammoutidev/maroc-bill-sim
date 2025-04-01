@@ -42,7 +42,12 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      await login({ email, password, role });
+      await login({ 
+        email, 
+        password, 
+        role,
+        rememberMe 
+      });
       navigate('/dashboard');
     } catch (error) {
       toast({

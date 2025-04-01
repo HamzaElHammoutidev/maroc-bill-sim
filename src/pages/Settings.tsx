@@ -20,8 +20,11 @@ const Settings = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Check if current user is an admin
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin';
+  
+  const updateSettings = () => {
+    console.log(`Language: ${i18n.language}`);
+  };
   
   return (
     <div className="space-y-6 animate-fade-in">
@@ -51,13 +54,13 @@ const Settings = () => {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => i18n.changeLanguage('fr')}
-                  className={`px-4 py-2 rounded-md ${language === 'fr' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
+                  className={`px-4 py-2 rounded-md ${i18n.language === 'fr' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
                 >
                   Français
                 </button>
                 <button 
                   onClick={() => i18n.changeLanguage('ar')}
-                  className={`px-4 py-2 rounded-md ${language === 'ar' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
+                  className={`px-4 py-2 rounded-md ${i18n.language === 'ar' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
                 >
                   العربية
                 </button>
@@ -135,7 +138,6 @@ const Settings = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
-                  {/* User Management Card */}
                   <Card className="overflow-hidden">
                     <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
                       <CardTitle className="flex items-center text-base">
@@ -160,7 +162,6 @@ const Settings = () => {
                     </CardFooter>
                   </Card>
                   
-                  {/* Permissions Card */}
                   <Card className="overflow-hidden">
                     <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
                       <CardTitle className="flex items-center text-base">
@@ -185,7 +186,6 @@ const Settings = () => {
                     </CardFooter>
                   </Card>
                   
-                  {/* Audit Log Card */}
                   <Card className="overflow-hidden">
                     <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
                       <CardTitle className="flex items-center text-base">

@@ -1,157 +1,165 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Search, FileCheck, FileX, FilePlus } from 'lucide-react';
-import { mockInvoices } from '@/data/mockData';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Button } from '@/components/ui/button';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import { Invoice } from '@/data/mockData';
 
 export interface InvoiceLinkSelectorProps {
-  onInvoiceSelect: (invoiceId: string) => void;
-  selectedInvoiceId?: string;
-  clientId?: string;
+  invoices: Invoice[];
+  selectedInvoiceId: string | null;
+  onChange: (invoiceId: string | null) => void;
+  getClientName: (clientId: string) => string;
+  label?: string;
+  placeholder?: string;
   disabled?: boolean;
-  type?: 'credit-note' | 'deposit' | 'proforma';
 }
 
 const InvoiceLinkSelector: React.FC<InvoiceLinkSelectorProps> = ({
-  onInvoiceSelect,
+  invoices,
   selectedInvoiceId,
-  clientId,
+  onChange,
+  getClientName,
+  label = 'Link Invoice',
+  placeholder = 'Select an invoice',
   disabled = false,
-  type = 'credit-note'
 }) => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredInvoices, setFilteredInvoices] = useState(mockInvoices);
   const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(selectedInvoiceId || '');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Get the currently selected invoice
-  const selectedInvoice = mockInvoices.find(inv => inv.id === selectedInvoiceId);
-
-  // Filter invoices based on client and search query
+  // When selectedInvoiceId changes from parent
   useEffect(() => {
-    let filtered = mockInvoices;
+    setValue(selectedInvoiceId || '');
+  }, [selectedInvoiceId]);
+
+  // Filter invoices based on search term
+  const filteredInvoices = invoices.filter((invoice) => {
+    const searchString = searchTerm.toLowerCase();
+    const clientName = getClientName(invoice.clientId).toLowerCase();
     
-    // Filter by client if specified
-    if (clientId) {
-      filtered = filtered.filter(inv => inv.clientId === clientId);
-    }
-    
-    // Additional filters based on type
-    if (type === 'credit-note') {
-      // For credit notes, only show issued/paid invoices
-      filtered = filtered.filter(inv => 
-        ['issued', 'sent', 'paid', 'partial', 'overdue'].includes(inv.status)
-      );
-    } else if (type === 'deposit') {
-      // For deposit invoices, show only non-paid invoices
-      filtered = filtered.filter(inv => 
-        ['draft', 'issued', 'sent', 'partial', 'overdue'].includes(inv.status)
-      );
-    }
-    
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(inv => 
-        inv.invoiceNumber.toLowerCase().includes(query) || 
-        inv.clientName?.toLowerCase().includes(query)
-      );
-    }
-    
-    setFilteredInvoices(filtered);
-  }, [clientId, searchQuery, type]);
+    return (
+      invoice.invoiceNumber.toLowerCase().includes(searchString) ||
+      clientName.includes(searchString) ||
+      formatDate(invoice.date).toLowerCase().includes(searchString)
+    );
+  });
+
+  // Find the currently selected invoice
+  const selectedInvoice = value
+    ? invoices.find((invoice) => invoice.id === value)
+    : null;
+
+  // Handle selection change
+  const handleSelectInvoice = (invoiceId: string) => {
+    setValue(invoiceId);
+    onChange(invoiceId);
+    setOpen(false);
+  };
+
+  // Handle clearing the selection
+  const handleClearInvoice = () => {
+    setValue('');
+    onChange(null);
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   return (
     <div className="space-y-2">
-      <Label>{t(type === 'credit-note' ? 'credit_notes.related_invoice' : 'invoices.related_invoice')}</Label>
-      
-      <div className="flex gap-2">
+      <label className="text-sm font-medium">{label}</label>
+      <div className="relative">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start text-left font-normal"
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between"
               disabled={disabled}
             >
               {selectedInvoice ? (
-                <div className="flex flex-col">
+                <div className="flex items-center gap-2">
                   <span className="font-medium">{selectedInvoice.invoiceNumber}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(selectedInvoice.date)} - {formatCurrency(selectedInvoice.total)}
+                  <span className="text-muted-foreground">
+                    ({getClientName(selectedInvoice.clientId)})
                   </span>
                 </div>
               ) : (
-                <span className="text-muted-foreground">{t('invoices.select_invoice')}</span>
+                <span className="text-muted-foreground">{placeholder}</span>
               )}
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[350px] p-0" align="start">
-            <div className="p-3 border-b">
-              <Input
-                placeholder={t('invoices.search_invoices')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-dashed"
-                icon={<Search className="w-4 h-4 mr-2 opacity-50" />}
-              />
-            </div>
-            <div className="max-h-[300px] overflow-auto p-0">
-              {filteredInvoices.length > 0 ? (
-                <div className="grid gap-1 p-2">
+          <PopoverContent className="p-0 w-[300px]" align="start">
+            <Command>
+              <div className="flex items-center border-b px-3">
+                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                <CommandInput
+                  placeholder={t('common.search_invoices')}
+                  value={searchTerm}
+                  onValueChange={setSearchTerm}
+                  className="flex-1 border-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+              <CommandList>
+                <CommandEmpty>{t('common.no_invoices_found')}</CommandEmpty>
+                <CommandGroup>
                   {filteredInvoices.map((invoice) => (
-                    <Button
+                    <CommandItem
                       key={invoice.id}
-                      variant="ghost"
-                      className="justify-start w-full px-2 py-1 h-auto grid grid-cols-[auto_1fr] gap-2"
-                      onClick={() => {
-                        onInvoiceSelect(invoice.id);
-                        setOpen(false);
-                      }}
+                      value={invoice.id}
+                      onSelect={() => handleSelectInvoice(invoice.id)}
                     >
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-                        {invoice.status === 'paid' ? (
-                          <FileCheck className="w-4 h-4 text-primary" />
-                        ) : (
-                          <FilePlus className="w-4 h-4 text-primary" />
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === invoice.id ? "opacity-100" : "opacity-0"
                         )}
-                      </div>
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">{invoice.invoiceNumber}</span>
-                        <div className="flex justify-between w-full text-xs text-muted-foreground">
-                          <span>{formatDate(invoice.date)}</span>
-                          <span>{formatCurrency(invoice.total)}</span>
+                      />
+                      <div className="flex flex-col">
+                        <div className="font-medium">{invoice.invoiceNumber}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {getClientName(invoice.clientId)} - {formatDate(invoice.date)} - {formatCurrency(invoice.total)}
                         </div>
                       </div>
-                    </Button>
+                    </CommandItem>
                   ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-6 text-center">
-                  <FileX className="w-10 h-10 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {t('invoices.no_invoices_found')}
-                  </p>
-                </div>
-              )}
-            </div>
+                </CommandGroup>
+              </CommandList>
+            </Command>
           </PopoverContent>
         </Popover>
+        {selectedInvoice && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-0 h-full px-3"
+            onClick={handleClearInvoice}
+            disabled={disabled}
+          >
+            <X className="h-4 w-4 opacity-50" />
+          </Button>
+        )}
       </div>
     </div>
   );
