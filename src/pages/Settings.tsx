@@ -1,14 +1,27 @@
-
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { 
+  UsersIcon, 
+  ShieldIcon, 
+  ActivitySquareIcon,
+  ArrowRightIcon
+} from 'lucide-react';
 
 const Settings = () => {
-  const { t, language, setLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Check if current user is an admin
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin';
   
   return (
     <div className="space-y-6 animate-fade-in">
@@ -23,24 +36,27 @@ const Settings = () => {
           <TabsTrigger value="notifications">{t('settings.tabs.notifications')}</TabsTrigger>
           <TabsTrigger value="security">{t('settings.tabs.security')}</TabsTrigger>
           <TabsTrigger value="billing">{t('settings.tabs.billing')}</TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="administration">{t('settings.tabs.administration')}</TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('settings.language.title')}</CardTitle>
-              <CardDescription>{t('settings.language.description')}</CardDescription>
+              <CardTitle>{t('settings.i18n.language.title')}</CardTitle>
+              <CardDescription>{t('settings.i18n.language.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => setLanguage('fr')}
+                  onClick={() => i18n.changeLanguage('fr')}
                   className={`px-4 py-2 rounded-md ${language === 'fr' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
                 >
                   Français
                 </button>
                 <button 
-                  onClick={() => setLanguage('ar')}
+                  onClick={() => i18n.changeLanguage('ar')}
                   className={`px-4 py-2 rounded-md ${language === 'ar' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
                 >
                   العربية
@@ -109,6 +125,96 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {isAdmin && (
+          <TabsContent value="administration" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.administration.title')}</CardTitle>
+                <CardDescription>{t('settings.administration.description')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+                  {/* User Management Card */}
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
+                      <CardTitle className="flex items-center text-base">
+                        <UsersIcon className="h-5 w-5 mr-2 text-primary" />
+                        {t('settings.administration.userManagement')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {t('settings.administration.userManagementDesc')}
+                      </p>
+                    </CardContent>
+                    <CardFooter className="bg-gray-50 dark:bg-gray-800 pt-2">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-between" 
+                        onClick={() => navigate('/users')}
+                      >
+                        {t('settings.administration.goToUserManagement')}
+                        <ArrowRightIcon className="h-4 w-4 ml-2" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                  
+                  {/* Permissions Card */}
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
+                      <CardTitle className="flex items-center text-base">
+                        <ShieldIcon className="h-5 w-5 mr-2 text-primary" />
+                        {t('settings.administration.permissions')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {t('settings.administration.permissionsDesc')}
+                      </p>
+                    </CardContent>
+                    <CardFooter className="bg-gray-50 dark:bg-gray-800 pt-2">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-between" 
+                        onClick={() => navigate('/permissions')}
+                      >
+                        {t('settings.administration.goToPermissions')}
+                        <ArrowRightIcon className="h-4 w-4 ml-2" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                  
+                  {/* Audit Log Card */}
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-2">
+                      <CardTitle className="flex items-center text-base">
+                        <ActivitySquareIcon className="h-5 w-5 mr-2 text-primary" />
+                        {t('settings.administration.auditLog')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {t('settings.administration.auditLogDesc')}
+                      </p>
+                    </CardContent>
+                    <CardFooter className="bg-gray-50 dark:bg-gray-800 pt-2">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-between" 
+                        onClick={() => navigate('/audit-log')}
+                      >
+                        {t('settings.administration.goToAuditLog')}
+                        <ArrowRightIcon className="h-4 w-4 ml-2" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+            
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

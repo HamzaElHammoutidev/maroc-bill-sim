@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
@@ -19,7 +19,7 @@ const PaymentFilters: React.FC<PaymentFiltersProps> = ({
   statusFilter,
   onStatusFilterChange,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   // Status options for the filter
   const statusOptions = [

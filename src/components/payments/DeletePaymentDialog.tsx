@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ const DeletePaymentDialog: React.FC<DeletePaymentDialogProps> = ({
   onOpenChange,
   onConfirmDelete,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const handleClose = () => {
     onOpenChange(false);

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/utils';
 import StatusBadge from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ const PaymentDetailsDialog: React.FC<PaymentDetailsDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const handleClose = () => {
     onOpenChange(false);

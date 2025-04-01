@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Shield } from 'lucide-react';
 
 const Unauthorized = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">

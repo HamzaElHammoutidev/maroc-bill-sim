@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -16,9 +15,14 @@ import {
   Plus,
   FileX,
   FileMinus,
-  SendHorizontal
+  SendHorizontal,
+  ClipboardCheck,
+  AlertTriangle,
+  Bell,
+  History,
+  Download
 } from 'lucide-react';
-import { mockQuotes, mockInvoices, Quote, getClientById, QuoteStatus } from '@/data/mockData';
+import { mockQuotes, mockInvoices, Quote, getClientById, QuoteStatus, EmailHistoryEntry } from '@/data/mockData';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import StatusBadge from '@/components/StatusBadge';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
@@ -46,9 +50,11 @@ import QuoteFormDialog from '@/components/quotes/QuoteFormDialog';
 import SendQuoteDialog from '@/components/quotes/SendQuoteDialog';
 import ConvertQuoteDialog from '@/components/quotes/ConvertQuoteDialog';
 import DeleteQuoteDialog from '@/components/quotes/DeleteQuoteDialog';
+import QuoteValidationDialog from '@/components/quotes/QuoteValidationDialog';
+import QuoteReminderDialog from '@/components/quotes/QuoteReminderDialog';
 
 const Quotes = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -62,6 +68,8 @@ const Quotes = () => {
   const [isSendOpen, setIsSendOpen] = useState(false);
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isValidationOpen, setIsValidationOpen] = useState(false);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
   
   // Filter states
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
@@ -120,8 +128,8 @@ const Quotes = () => {
   
   // Handler for editing a quote
   const handleEditQuote = (quote: Quote) => {
-    // Only allow editing of draft or sent quotes
-    if (!['draft', 'sent'].includes(quote.status)) {
+    // Only allow editing of draft or awaiting acceptance quotes
+    if (!['draft', 'pending_validation', 'awaiting_acceptance'].includes(quote.status)) {
       toast({
         title: t('quotes.editError'),
         description: t('quotes.editErrorDesc'),
@@ -137,8 +145,8 @@ const Quotes = () => {
   
   // Handler for sending a quote
   const handleSendQuote = (quote: Quote) => {
-    // Only allow sending of draft quotes or resending of sent quotes
-    if (!['draft', 'sent'].includes(quote.status)) {
+    // Only allow sending of draft quotes or resending of awaiting acceptance quotes
+    if (!['draft', 'pending_validation', 'awaiting_acceptance'].includes(quote.status)) {
       toast({
         title: t('quotes.sendError'),
         description: t('quotes.sendErrorDesc'),
@@ -205,6 +213,164 @@ const Quotes = () => {
     
     setSelectedQuote(quote);
     setIsDeleteOpen(true);
+  };
+  
+  // Handler for submitting a quote for validation
+  const handleSubmitForValidation = (quote: Quote) => {
+    // Only allow submission of draft quotes
+    if (quote.status !== 'draft') {
+      toast({
+        title: t('quotes.validationError'),
+        description: t('quotes.validationErrorDesc'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Update the quote status
+    const updatedQuotes = quotes.map(q => {
+      if (q.id === quote.id) {
+        return {
+          ...q,
+          status: 'pending_validation' as QuoteStatus,
+          needsValidation: true,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return q;
+    });
+    
+    setQuotes(updatedQuotes);
+    
+    toast({
+      title: t('quotes.validationSubmitted'),
+      description: t('quotes.validationSubmittedDesc'),
+    });
+  };
+  
+  // Handler for opening the validation dialog
+  const handleValidateQuote = (quote: Quote) => {
+    if (quote.status !== 'pending_validation') {
+      toast({
+        title: t('quotes.cannotValidate'),
+        description: t('quotes.cannotValidateDesc'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setSelectedQuote(quote);
+    setIsValidationOpen(true);
+  };
+  
+  // Handlers for validation dialog actions
+  const handleApproveValidation = (data: any) => {
+    if (!selectedQuote) return;
+    
+    const updatedQuotes = quotes.map(q => {
+      if (q.id === selectedQuote.id) {
+        return {
+          ...q,
+          status: 'draft' as QuoteStatus, // Return to draft so it can be sent
+          needsValidation: false,
+          validatedById: 'current-user', // Replace with actual user ID
+          validatedAt: new Date().toISOString(),
+          notes: data.notes ? `${q.notes || ''}\n\nValidation Notes: ${data.notes}` : q.notes,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return q;
+    });
+    
+    setQuotes(updatedQuotes);
+    setIsValidationOpen(false);
+    
+    toast({
+      title: t('quotes.quoteApproved'),
+      description: t('quotes.quoteApprovedDesc'),
+    });
+  };
+  
+  const handleRejectValidation = (data: any) => {
+    if (!selectedQuote) return;
+    
+    const updatedQuotes = quotes.map(q => {
+      if (q.id === selectedQuote.id) {
+        return {
+          ...q,
+          status: 'draft' as QuoteStatus, // Return to draft for corrections
+          needsValidation: false,
+          notes: data.notes ? `${q.notes || ''}\n\nRejection Notes: ${data.notes}` : q.notes,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return q;
+    });
+    
+    setQuotes(updatedQuotes);
+    setIsValidationOpen(false);
+    
+    toast({
+      title: t('quotes.quoteRejected'),
+      description: t('quotes.quoteRejectedDesc'),
+      variant: 'destructive'
+    });
+  };
+  
+  // Handler for reminder configuration
+  const handleConfigureReminder = (quote: Quote) => {
+    // Only allow reminder configuration for quotes that are in 'awaiting_acceptance' status
+    if (quote.status !== 'awaiting_acceptance') {
+      toast({
+        title: t('quotes.reminderError'),
+        description: t('quotes.reminderErrorDesc'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setSelectedQuote(quote);
+    setIsReminderOpen(true);
+  };
+  
+  // Handler for saving reminder settings
+  const handleSaveReminder = (data: any) => {
+    if (!selectedQuote) return;
+    
+    const updatedQuotes = quotes.map(q => {
+      if (q.id === selectedQuote.id) {
+        // Calculate next reminder date based on settings
+        let nextReminderDate: string | undefined;
+        
+        if (data.enabled) {
+          const expiryDate = new Date(q.expiryDate);
+          const reminderDate = new Date(expiryDate);
+          reminderDate.setDate(expiryDate.getDate() - data.days);
+          
+          // If the reminder date is in the future, set it as the next reminder date
+          if (reminderDate > new Date()) {
+            nextReminderDate = reminderDate.toISOString();
+          }
+        }
+        
+        return {
+          ...q,
+          reminderEnabled: data.enabled,
+          reminderDays: data.days,
+          nextReminderDate: nextReminderDate,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return q;
+    });
+    
+    setQuotes(updatedQuotes);
+    setIsReminderOpen(false);
+    
+    toast({
+      title: t('quotes.reminderSaved'),
+      description: t('quotes.reminderSavedDesc'),
+    });
   };
   
   // Form submission handlers
@@ -277,15 +443,30 @@ const Quotes = () => {
   };
   
   const handleSendFormSubmit = (data: any) => {
-    if (!selectedQuote) return;
-    
-    // Update the status to 'sent' if it was in 'draft' status
-    if (selectedQuote.status === 'draft') {
+    if (selectedQuote) {
+      // Update the status to 'awaiting_acceptance' if it was in 'draft' or 'pending_validation' status
       const updatedQuotes = quotes.map(q => {
         if (q.id === selectedQuote.id) {
           return {
             ...q,
-            status: 'sent' as QuoteStatus,
+            status: 'awaiting_acceptance' as QuoteStatus,
+            lastEmailSentAt: new Date().toISOString(),
+            emailRecipients: [data.emailTo],
+            emailCc: data.emailCc ? [data.emailCc] : [],
+            emailHistory: [
+              ...(q.emailHistory || []),
+              {
+                id: `email-${Date.now()}`,
+                quoteId: q.id,
+                sentAt: new Date().toISOString(),
+                sentBy: 'current-user', // Replace with actual user ID in real implementation
+                recipients: [data.emailTo],
+                cc: data.emailCc ? [data.emailCc] : [],
+                subject: data.subject,
+                message: data.message,
+                status: 'sent' as 'sent' | 'failed' | 'opened' | 'responded',
+              }
+            ],
             updatedAt: new Date().toISOString(),
           };
         }
@@ -293,19 +474,13 @@ const Quotes = () => {
       });
       
       setQuotes(updatedQuotes);
-      setSelectedQuote({
-        ...selectedQuote,
-        status: 'sent',
-        updatedAt: new Date().toISOString(),
+      setIsSendOpen(false);
+      
+      toast({
+        title: t('quotes.sendSuccess'),
+        description: t('quotes.sendSuccessDesc')
       });
     }
-    
-    toast({
-      title: t('quotes.sendSuccess'),
-      description: t('quotes.sendSuccessDesc')
-    });
-    
-    setIsSendOpen(false);
   };
   
   const handleConvertFormSubmit = (data: any) => {
@@ -364,16 +539,6 @@ const Quotes = () => {
     setIsDeleteOpen(false);
     // Close the details dialog as well
     setIsDetailsOpen(false);
-  };
-
-  const handleApplyFilters = (filters: {
-    status: string | null;
-    clientId: string | null;
-    dateRange: { from: Date | null; to: Date | null };
-  }) => {
-    setFilterStatus(filters.status);
-    setFilterClient(filters.clientId);
-    setFilterDateRange(filters.dateRange);
   };
 
   const handleResetFilters = () => {
@@ -449,21 +614,43 @@ const Quotes = () => {
             label: t('form.edit'),
             icon: <Edit className="h-4 w-4" />,
             onClick: () => handleEditQuote(quote),
-            // Only allow editing of draft or sent quotes
-            disabled: !['draft', 'sent'].includes(quote.status)
+            // Only allow editing of draft or awaiting acceptance quotes
+            disabled: !['draft', 'pending_validation', 'awaiting_acceptance'].includes(quote.status)
           },
           {
             label: t('quotes.send'),
             icon: <SendHorizontal className="h-4 w-4" />,
             onClick: () => handleSendQuote(quote),
-            // Only allow sending of draft or sent quotes
-            disabled: !['draft', 'sent'].includes(quote.status)
+            // Only allow sending of draft or awaiting acceptance quotes
+            disabled: !['draft', 'pending_validation', 'awaiting_acceptance'].includes(quote.status) || 
+                     (quote.status === 'draft' && quote.needsValidation === true)
+          },
+          {
+            label: t('quotes.configureReminder'),
+            icon: <Bell className="h-4 w-4" />,
+            onClick: () => handleConfigureReminder(quote),
+            // Only show for awaiting acceptance quotes
+            hidden: quote.status !== 'awaiting_acceptance'
+          },
+          {
+            label: t('quotes.submitForValidation'),
+            icon: <ClipboardCheck className="h-4 w-4" />,
+            onClick: () => handleSubmitForValidation(quote),
+            // Only show for draft quotes
+            hidden: quote.status !== 'draft'
+          },
+          {
+            label: t('quotes.validateQuote'),
+            icon: <FileCheck className="h-4 w-4" />,
+            onClick: () => handleValidateQuote(quote),
+            // Only show for quotes pending validation
+            hidden: quote.status !== 'pending_validation'
           },
           {
             label: t('quotes.convert'),
             icon: <FilePieChart className="h-4 w-4" />,
             onClick: () => handleConvertQuote(quote),
-            // Only allow conversion of accepted quotes
+            // Only allow conversion of quotes that are in 'accepted' status
             disabled: quote.status !== 'accepted'
           },
           {
@@ -492,7 +679,8 @@ const Quotes = () => {
   const getStatusCounts = () => {
     const counts = {
       draft: 0,
-      sent: 0,
+      pending_validation: 0,
+      awaiting_acceptance: 0,
       accepted: 0,
       rejected: 0,
       expired: 0,
@@ -520,10 +708,16 @@ const Quotes = () => {
       className: 'bg-gray-50 border-gray-200'
     },
     {
-      title: t('quotes.sentStatus'),
-      count: statusCounts.sent,
-      icon: <FileText className="h-8 w-8 text-purple-500" />,
-      className: 'bg-purple-50 border-purple-200'
+      title: t('quotes.pendingValidationStatus'),
+      count: statusCounts.pending_validation,
+      icon: <FileText className="h-8 w-8 text-yellow-500" />,
+      className: 'bg-yellow-50 border-yellow-200'
+    },
+    {
+      title: t('quotes.awaitingAcceptanceStatus'),
+      count: statusCounts.awaiting_acceptance,
+      icon: <FileText className="h-8 w-8 text-blue-500" />,
+      className: 'bg-blue-50 border-blue-200'
     },
     {
       title: t('quotes.acceptedStatus'),
@@ -541,7 +735,7 @@ const Quotes = () => {
   
   // Calculate conversion rate
   const calculateConversionRate = () => {
-    const totalSent = statusCounts.sent + statusCounts.accepted + statusCounts.rejected + statusCounts.expired + statusCounts.converted;
+    const totalSent = statusCounts.awaiting_acceptance + statusCounts.accepted + statusCounts.rejected + statusCounts.expired + statusCounts.converted;
     const totalConverted = statusCounts.converted;
     
     if (totalSent === 0) return 0;
@@ -550,11 +744,83 @@ const Quotes = () => {
   
   const conversionRate = calculateConversionRate();
   
+  // Check for upcoming reminders
+  useEffect(() => {
+    const checkReminders = () => {
+      const now = new Date();
+      const reminderDue = quotes.filter(quote => {
+        if (!quote.reminderEnabled || !quote.nextReminderDate) return false;
+        const reminderDate = new Date(quote.nextReminderDate);
+        return reminderDate <= now && quote.status === 'awaiting_acceptance';
+      });
+      
+      if (reminderDue.length > 0) {
+        // In a real application, this would send actual reminder emails
+        // Here we'll just log to console and show a toast
+        console.log('Reminders due for quotes:', reminderDue.map(q => q.quoteNumber));
+        
+        // Update quotes to mark reminders as sent
+        const updatedQuotes = quotes.map(q => {
+          if (reminderDue.some(rq => rq.id === q.id)) {
+            // Create a new email history entry for the reminder
+            const emailHistoryEntry: EmailHistoryEntry = {
+              id: `email-reminder-${Date.now()}-${q.id}`,
+              quoteId: q.id,
+              sentAt: new Date().toISOString(),
+              sentBy: 'system', // Sent by the system
+              recipients: q.emailRecipients || [],
+              subject: t('quotes.reminderEmailSubject'),
+              message: t('quotes.reminderEmailMessage'),
+              status: 'sent' as 'sent' | 'failed' | 'opened' | 'responded',
+            };
+            
+            // Calculate the next reminder date (if enabled and expiry date is in the future)
+            let nextReminderDate: string | undefined = undefined;
+            if (q.reminderEnabled && new Date(q.expiryDate) > now) {
+              // For simplicity, schedule the next reminder in 7 days
+              // In a real app, this would be more sophisticated
+              const next = new Date();
+              next.setDate(now.getDate() + 7);
+              nextReminderDate = next.toISOString();
+            }
+            
+            return {
+              ...q,
+              lastEmailSentAt: new Date().toISOString(),
+              emailHistory: [...(q.emailHistory || []), emailHistoryEntry],
+              nextReminderDate,
+            };
+          }
+          return q;
+        });
+        
+        setQuotes(updatedQuotes);
+        
+        // Show toast notification
+        toast({
+          title: t('quotes.remindersSent'),
+          description: t('quotes.remindersSentDesc'),
+        });
+      }
+    };
+    
+    // Check for reminders when the component loads
+    if (!isLoading) {
+      checkReminders();
+    }
+    
+    // Set up an interval to check for reminders
+    // In a real app, this would be handled by a backend service
+    const interval = setInterval(checkReminders, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, [quotes, isLoading, toast, t]);
+  
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader 
         title="quotes.title"
-        description="quotes.description"
+        description="quotes.pageDescription"
         action={{
           label: "quotes.add",
           onClick: handleAddQuote
@@ -603,7 +869,12 @@ const Quotes = () => {
           
           {/* Filters */}
           <QuoteFilters 
-            onApplyFilters={handleApplyFilters}
+            statusFilter={filterStatus || 'all'}
+            setStatusFilter={(status) => setFilterStatus(status === 'all' ? null : status)}
+            clientFilter={filterClient || 'all'}
+            setClientFilter={(clientId) => setFilterClient(clientId === 'all' ? null : clientId)}
+            dateFilter={filterDateRange}
+            setDateFilter={setFilterDateRange}
             onResetFilters={handleResetFilters}
           />
           
@@ -623,16 +894,18 @@ const Quotes = () => {
           />
           
           {/* Quote Details Dialog */}
-          <QuoteDetailsDialog
-            quote={selectedQuote}
-            open={isDetailsOpen}
-            onOpenChange={setIsDetailsOpen}
-            onEdit={selectedQuote ? () => handleEditQuote(selectedQuote) : undefined}
-            onSend={selectedQuote ? () => handleSendQuote(selectedQuote) : undefined}
-            onConvert={selectedQuote ? () => handleConvertQuote(selectedQuote) : undefined}
-            onDuplicate={selectedQuote ? () => handleDuplicateQuote(selectedQuote) : undefined}
-            onDelete={selectedQuote ? () => handleDeleteQuote(selectedQuote) : undefined}
-          />
+          {isDetailsOpen && selectedQuote && (
+            <QuoteDetailsDialog
+              quote={selectedQuote}
+              open={isDetailsOpen}
+              onOpenChange={setIsDetailsOpen}
+              onEdit={() => handleEditQuote(selectedQuote)}
+              onSend={() => handleSendQuote(selectedQuote)}
+              onConvert={() => handleConvertQuote(selectedQuote)}
+              onDuplicate={() => handleDuplicateQuote(selectedQuote)}
+              onDelete={() => handleDeleteQuote(selectedQuote)}
+            />
+          )}
           
           {/* Quote Form Dialog */}
           <QuoteFormDialog
@@ -666,6 +939,27 @@ const Quotes = () => {
             onDelete={handleConfirmDelete}
             quote={selectedQuote}
           />
+          
+          {/* Validation Dialog */}
+          {isValidationOpen && selectedQuote && (
+            <QuoteValidationDialog
+              quote={selectedQuote}
+              open={isValidationOpen}
+              onOpenChange={setIsValidationOpen}
+              onValidate={handleApproveValidation}
+              onReject={handleRejectValidation}
+            />
+          )}
+          
+          {/* Reminder Dialog */}
+          {isReminderOpen && selectedQuote && (
+            <QuoteReminderDialog
+              quote={selectedQuote}
+              open={isReminderOpen}
+              onOpenChange={setIsReminderOpen}
+              onSave={handleSaveReminder}
+            />
+          )}
         </>
       )}
     </div>

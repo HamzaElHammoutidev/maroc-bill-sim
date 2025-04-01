@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/components/PageHeader';
 import { formatCurrency } from '@/lib/utils';
@@ -10,7 +10,7 @@ import { LineChart, BarChart3, PieChart, Download, Share, RefreshCw } from 'luci
 import { Button } from '@/components/ui/button';
 
 const Reports = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [reportType, setReportType] = useState("sales");
   

@@ -1,176 +1,135 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { CurrencySelector } from '@/components/CurrencySelector';
 
 const Login = () => {
-  const { login } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { login, user } = useAuth();
+  const { toast } = useToast();
   
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('admin');
+  const [email, setEmail] = useState('admin@example.com');
+  const [password, setPassword] = useState('password');
+  const [role, setRole] = useState('admin');
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      // Simple validation
-      return;
-    }
-    
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
-      const success = await login(email, password, role);
-      if (success) {
-        navigate('/dashboard');
-      }
+      await login({ email, password, role });
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: 'Login Failed',
+        description: 'Invalid credentials',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
   
-  const roleOptions: { value: UserRole; label: string }[] = [
-    { value: 'superadmin', label: 'Super Admin' },
-    { value: 'admin', label: 'Admin' },
-    { value: 'comptable', label: 'Comptable' },
-    { value: 'commercial', label: 'Commercial' },
-  ];
-  
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted/50">
-      <div className="absolute top-4 right-4">
-        <Select
-          value={language}
-          onValueChange={(value) => setLanguage(value as 'fr' | 'ar')}
-        >
-          <SelectTrigger className="w-[120px] glass-panel">
-            <SelectValue placeholder="Language" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="fr">Français</SelectItem>
-            <SelectItem value="ar">العربية</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <Card className="w-full max-w-md shadow-xl border-0 glass-panel animate-fade-in">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-6">
-            <div className="font-bold text-3xl bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              MarocBill
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-md space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">{t('login.title')}</h1>
+          <div className="flex justify-center mt-4 space-x-2">
+            <LanguageSwitcher />
+            <CurrencySelector value="MAD" onChange={() => {}} />
           </div>
-          <CardTitle className="text-2xl text-center">{t('login.title')}</CardTitle>
-          <CardDescription className="text-center">
-            {t('login.subtitle')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">{t('login.email')}</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="exemple@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="glass-panel"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t('login.password')}</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="glass-panel"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">{t('login.role')}</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as UserRole)}
-              >
-                <SelectTrigger className="glass-panel">
-                  <SelectValue placeholder={t('login.select_role')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Pour la démo, utilisez n'importe quels identifiants avec le rôle choisi
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              />
-              <Label
-                htmlFor="remember"
-                className="text-sm font-normal cursor-pointer"
-              >
-                {t('login.remember')}
-              </Label>
-            </div>
-            <Button
-              type="submit"
-              className="w-full shadow-md hover:shadow-lg transition-all"
-              disabled={isLoading}
+        </div>
+        
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="email">{t('login.email')}</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              autoComplete="email"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">{t('login.password')}</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="********"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="role">{t('login.role')}</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Roles</SelectLabel>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="accountant">Accountant</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="rememberMe"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+            />
+            <Label
+              htmlFor="rememberMe"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
-                  {t('common.loading')}
-                </div>
-              ) : (
-                t('login.button')
-              )}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="border-t pt-6">
-          <div className="text-xs text-center w-full text-muted-foreground">
-            © 2023 MarocBill. {t('login.disclaimer')}
+              {t('login.remember')}
+            </Label>
           </div>
-        </CardFooter>
-      </Card>
+          
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Logging in...' : t('login.button')}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };

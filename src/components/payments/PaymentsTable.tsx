@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Eye, FileText, Trash, DownloadCloud } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
@@ -23,7 +23,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({
   onDownloadReceipt,
   onDeletePayment,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const columns: Column<Payment>[] = [
     {

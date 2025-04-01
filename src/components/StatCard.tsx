@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
@@ -25,7 +25,7 @@ const StatCard: React.FC<StatCardProps> = ({
   description,
   colorClass = 'bg-primary text-primary-foreground'
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   
   return (
     <Card className="overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300 animate-fade-in">

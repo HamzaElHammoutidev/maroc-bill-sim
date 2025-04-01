@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
  
@@ -50,4 +49,11 @@ export function formatDateTime(date: string | Date): string {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+/**
+ * Format a number as a percentage string
+ */
+export function formatPercentage(value: number): string {
+  return `${Math.round(value)}%`;
 }

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ const DeleteQuoteDialog: React.FC<DeleteQuoteDialogProps> = ({
   onDelete,
   quote,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   
   if (!quote) return null;
   

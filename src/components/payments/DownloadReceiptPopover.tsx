@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Payment } from '@/data/mockData';
 import {
@@ -22,7 +22,7 @@ const DownloadReceiptPopover: React.FC<DownloadReceiptPopoverProps> = ({
   onOpenChange,
   onDownload,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   if (!payment) return null;
 

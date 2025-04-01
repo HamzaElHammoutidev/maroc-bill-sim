@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   DropdownMenu,
@@ -18,6 +17,7 @@ export type ActionItem = {
   className?: string;
   disabled?: boolean;
   danger?: boolean;
+  hidden?: boolean;
 };
 
 export interface TableActionsProps {
@@ -37,7 +37,10 @@ const TableActions: React.FC<TableActionsProps> = ({
   size = 'icon',
   tooltipContent,
 }) => {
-  if (actions.length === 0) return null;
+  // Filter out hidden actions
+  const visibleActions = actions.filter(action => !action.hidden);
+  
+  if (visibleActions.length === 0) return null;
 
   return (
     <DropdownMenu>
@@ -54,7 +57,7 @@ const TableActions: React.FC<TableActionsProps> = ({
       <DropdownMenuContent align={placement === 'left' ? 'start' : 'end'} className="bg-background border-border shadow-md z-50">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {actions.map((action, index) => (
+        {visibleActions.map((action, index) => (
           <DropdownMenuItem
             key={index}
             onClick={(e) => {

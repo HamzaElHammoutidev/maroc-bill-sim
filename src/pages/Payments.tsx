@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/components/PageHeader';
 import { CreditCard } from 'lucide-react';
@@ -16,7 +16,7 @@ import DownloadReceiptPopover from '@/components/payments/DownloadReceiptPopover
 import DeletePaymentDialog from '@/components/payments/DeletePaymentDialog';
 
 const Payments = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const companyId = user?.companyId || '101'; // Default for demo
   

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -61,7 +61,7 @@ const SendQuoteDialog: React.FC<SendQuoteDialogProps> = ({
   onSend,
   quote,
 }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { toast } = useToast();
   
   // Initialize form with default values

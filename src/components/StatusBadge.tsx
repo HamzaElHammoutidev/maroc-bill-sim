@@ -1,58 +1,97 @@
-
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { InvoiceStatus, QuoteStatus, PaymentStatus } from '@/data/mockData';
+import { InvoiceStatus, QuoteStatus, PaymentStatus, CreditNoteStatus } from '@/data/mockData';
+
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
 
 interface StatusBadgeProps {
-  status: InvoiceStatus | QuoteStatus | PaymentStatus;
-  type: 'invoice' | 'quote' | 'payment';
+  status: InvoiceStatus | QuoteStatus | PaymentStatus | CreditNoteStatus | string;
+  type: 'invoice' | 'quote' | 'payment' | 'credit_note';
+  className?: string;
 }
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type }) => {
-  const { t } = useLanguage();
-  
-  // Define color mapping for statuses
-  const getColorClass = () => {
-    switch (status) {
-      case 'paid':
-      case 'accepted':
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200';
-      case 'partial':
-      case 'pending':
-        return 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200';
-      case 'sent':
-        return 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200';
-      case 'overdue':
-      case 'rejected':
-      case 'failed':
-        return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200';
-      case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200';
-      case 'converted':
-        return 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200';
-      case 'expired':
-        return 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200';
-      case 'cancelled':
-      case 'refunded':
-        return 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200';
-      default:
-        return 'bg-gray-100 text-gray-800';
+export default function StatusBadge({ status, type, className = '' }: StatusBadgeProps) {
+  const { t } = useTranslation();
+
+  const getColorClass = (): BadgeVariant => {
+    if (type === 'invoice') {
+      switch (status) {
+        case 'draft':
+          return 'secondary';
+        case 'sent':
+          return 'default';
+        case 'paid':
+          return 'success';
+        case 'partial':
+          return 'warning';
+        case 'overdue':
+          return 'destructive';
+        case 'cancelled':
+          return 'outline';
+        default:
+          return 'default';
+      }
+    } else if (type === 'quote') {
+      switch (status) {
+        case 'draft':
+          return 'secondary';
+        case 'sent':
+          return 'default';
+        case 'accepted':
+          return 'success';
+        case 'rejected':
+          return 'destructive';
+        case 'expired':
+          return 'outline';
+        case 'invoiced':
+          return 'warning';
+        default:
+          return 'default';
+      }
+    } else if (type === 'payment') {
+      switch (status) {
+        case 'pending':
+          return 'warning';
+        case 'completed':
+          return 'success';
+        case 'failed':
+          return 'destructive';
+        case 'refunded':
+          return 'outline';
+        default:
+          return 'default';
+      }
+    } else if (type === 'credit_note') {
+      switch (status) {
+        case 'draft':
+          return 'secondary';
+        case 'issued':
+          return 'default';
+        case 'applied':
+          return 'success';
+        case 'refunded':
+          return 'warning';
+        case 'cancelled':
+          return 'destructive';
+        default:
+          return 'default';
+      }
     }
+    
+    return 'default';
   };
-  
-  // Get translation key for status
-  const getStatusKey = () => {
+
+  const getStatusKey = (): string => {
+    if (type === 'credit_note') {
+      return `credit_notes.${status}`;
+    }
     return `${type}s.${status}`;
   };
-  
+
   return (
-    <Badge variant="outline" className={cn("font-normal transition-colors", getColorClass())}>
+    <Badge variant={getColorClass()} className={className}>
       {t(getStatusKey())}
     </Badge>
   );
-};
-
-export default StatusBadge;
+}

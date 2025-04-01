@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { getInvoiceStats, getTopClients, mockInvoices, mockClients } from '@/data/mockData';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
@@ -50,7 +50,7 @@ import {
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { toast } = useToast();
   
   const companyId = user?.companyId || '101'; // Default for demo
