@@ -45,12 +45,10 @@ const CreditNotes = () => {
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [selectedCreditNote, setSelectedCreditNote] = useState<CreditNote | null>(null);
   
-  // Dialog visibility states
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCreateForm, setIsCreateForm] = useState(true);
   
-  // Check if we're coming from an invoice to create a credit note
   useEffect(() => {
     if (invoiceId) {
       setIsCreateForm(true);
@@ -58,7 +56,6 @@ const CreditNotes = () => {
     }
   }, [invoiceId]);
   
-  // Load credit notes
   useEffect(() => {
     const timer = setTimeout(() => {
       setCreditNotes(mockCreditNotes);
@@ -68,20 +65,17 @@ const CreditNotes = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Handler for creating a new credit note
   const handleCreateCreditNote = () => {
     setSelectedCreditNote(null);
     setIsCreateForm(true);
     setIsFormOpen(true);
   };
   
-  // Handler for viewing a credit note
   const handleViewCreditNote = (creditNote: CreditNote) => {
     setSelectedCreditNote(creditNote);
     setIsDetailsOpen(true);
   };
   
-  // Handler for editing a credit note
   const handleEditCreditNote = (creditNote: CreditNote) => {
     if (creditNote.status !== 'draft') {
       toast({
@@ -97,7 +91,6 @@ const CreditNotes = () => {
     setIsFormOpen(true);
   };
   
-  // Handler for applying a credit note
   const handleApplyCreditNote = (creditNote: CreditNote) => {
     if (creditNote.isFullyApplied) {
       toast({
@@ -108,17 +101,13 @@ const CreditNotes = () => {
       return;
     }
     
-    // This will be handled by opening a specific dialog or redirect to application page
     toast({
       title: t('credit_notes.apply_credit'),
       description: t('credit_notes.apply_credit_desc'),
     });
   };
   
-  // Handler for form submission
   const handleCreditNoteFormSubmit = (creditNote: CreditNote) => {
-    // In a real application, you would update your state with the new or updated credit note
-    // For now, we'll just show a toast and refresh the list
     toast({
       title: isCreateForm 
         ? t('credit_notes.created') 
@@ -126,14 +115,10 @@ const CreditNotes = () => {
       description: `${t('credit_notes.credit_note')} #${creditNote.creditNoteNumber}`,
     });
     
-    // Refresh the credit notes list
     setCreditNotes([...mockCreditNotes]);
-    
-    // Close the form
     setIsFormOpen(false);
   };
   
-  // Get counts for each status
   const getStatusCounts = () => {
     const counts = {
       draft: 0,
@@ -154,7 +139,6 @@ const CreditNotes = () => {
   
   const statusCounts = getStatusCounts();
   
-  // Define status cards
   const statusCards = [
     {
       title: t('credit_notes.status.draft'),
@@ -182,12 +166,10 @@ const CreditNotes = () => {
     }
   ];
   
-  // Calculate total credit amount
   const calculateTotalCreditAmount = () => {
     return creditNotes.reduce((sum, note) => sum + note.total, 0);
   };
   
-  // Calculate remaining credit amount (not yet applied)
   const calculateRemainingCreditAmount = () => {
     return creditNotes.reduce((sum, note) => {
       const remainingAmount = note.remainingAmount !== undefined 
@@ -221,7 +203,6 @@ const CreditNotes = () => {
         </div>
       ) : (
         <>
-          {/* Status Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {statusCards.map((card, index) => (
               <Card key={index} className={`${card.className} shadow-sm`}>
@@ -237,7 +218,6 @@ const CreditNotes = () => {
               </Card>
             ))}
             
-            {/* Total Amount Card */}
             <Card className="bg-purple-50 border-purple-200 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex justify-between items-center">
@@ -250,7 +230,6 @@ const CreditNotes = () => {
               </CardContent>
             </Card>
             
-            {/* Remaining Amount Card */}
             <Card className="bg-amber-50 border-amber-200 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex justify-between items-center">
@@ -264,7 +243,6 @@ const CreditNotes = () => {
             </Card>
           </div>
           
-          {/* Credit Notes List */}
           <CreditNoteList
             onSelectCreditNote={handleViewCreditNote}
             onCreateCreditNote={handleCreateCreditNote}
@@ -272,7 +250,6 @@ const CreditNotes = () => {
         </>
       )}
       
-      {/* Credit Note Form Dialog */}
       <CreditNoteForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
@@ -282,7 +259,6 @@ const CreditNotes = () => {
         invoiceId={invoiceId || undefined}
       />
       
-      {/* Credit Note Details Dialog */}
       <CreditNoteDetailsDialog
         creditNoteId={selectedCreditNote?.id || null}
         open={isDetailsOpen}
@@ -294,4 +270,4 @@ const CreditNotes = () => {
   );
 };
 
-export default CreditNotes; 
+export default CreditNotes;
