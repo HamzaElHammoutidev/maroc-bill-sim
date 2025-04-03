@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,12 +42,7 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      await login({ 
-        email, 
-        password, 
-        role,
-        rememberMe 
-      });
+      await login(email, password, role as UserRole);
       navigate('/dashboard');
     } catch (error) {
       toast({
