@@ -7,16 +7,164 @@ import {
   Inventory as InventoryType, 
   getInventories, 
   getInventoryItems,
-  getStockLocationById
+  getStockLocationById,
+  getProductById
 } from '@/data/mockData';
 import { formatDate } from '@/utils/format';
 import PageHeader from '@/components/PageHeader';
-import { Clipboard, ClipboardCheck, Plus } from 'lucide-react';
+import { Clipboard, ClipboardCheck, Plus, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
 import InventoryForm from '@/components/InventoryForm';
+import InventoryHelp from '@/components/InventoryHelp';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+// Component to view inventory details
+const InventoryViewDialog = ({ 
+  inventory, 
+  open, 
+  onOpenChange 
+}: { 
+  inventory: InventoryType | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const { t } = useTranslation();
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  
+  useEffect(() => {
+    if (inventory) {
+      setInventoryItems(getInventoryItems(inventory.id));
+    }
+  }, [inventory]);
+  
+  if (!inventory) return null;
+  
+  const location = getStockLocationById(inventory.locationId);
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('stock.viewing_inventory')} {inventory.name}</DialogTitle>
+          <DialogDescription>{t('stock.inventory_description')}</DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6 mt-4">
+          {/* Inventory info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border p-4 rounded-md bg-muted/10">
+            <div>
+              <p className="text-sm text-muted-foreground">{t('stock.location')}</p>
+              <p className="font-medium">{location?.name || inventory.locationId}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('common.status')}</p>
+              <p className="font-medium">
+                <Badge variant={
+                  inventory.status === 'completed' ? 'default' :
+                  inventory.status === 'in_progress' ? 'secondary' : 'outline'
+                }>
+                  {t(`stock.status_${inventory.status}`)}
+                </Badge>
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('common.date')}</p>
+              <p className="font-medium">{formatDate(inventory.date)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{t('common.created_by')}</p>
+              <p className="font-medium">{inventory.createdBy}</p>
+            </div>
+            {inventory.notes && (
+              <div className="col-span-2">
+                <p className="text-sm text-muted-foreground">{t('stock.notes')}</p>
+                <p className="font-medium">{inventory.notes}</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Inventory items */}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('products.product')}</TableHead>
+                  <TableHead className="text-right">{t('stock.expected')}</TableHead>
+                  <TableHead className="text-right">{t('stock.actual')}</TableHead>
+                  <TableHead className="text-right">{t('stock.difference')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inventoryItems.map(item => {
+                  const product = getProductById(item.productId);
+                  const difference = item.actualQuantity - item.expectedQuantity;
+                  
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>{product?.name || item.productId}</TableCell>
+                      <TableCell className="text-right">{item.expectedQuantity}</TableCell>
+                      <TableCell className="text-right">{item.actualQuantity}</TableCell>
+                      <TableCell className="text-right">
+                        <span className={
+                          difference > 0 
+                            ? 'text-green-600' 
+                            : difference < 0 
+                              ? 'text-red-600' 
+                              : ''
+                        }>
+                          {difference > 0 ? '+' : ''}{difference}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Adjustment summary */}
+          {inventory.status === 'completed' && (
+            <div className="bg-muted p-4 rounded-md">
+              <h4 className="font-medium mb-2">{t('stock.adjustment_summary')}</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>{t('stock.total_items')}:</span>
+                  <span>{inventoryItems.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>{t('stock.items_with_differences')}:</span>
+                  <span>{inventoryItems.filter(i => i.actualQuantity !== i.expectedQuantity).length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>{t('stock.positive_adjustments')}:</span>
+                  <span className="text-green-600">
+                    +{inventoryItems.reduce((sum, item) => {
+                      const diff = item.actualQuantity - item.expectedQuantity;
+                      return sum + (diff > 0 ? diff : 0);
+                    }, 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>{t('stock.negative_adjustments')}:</span>
+                  <span className="text-red-600">
+                    {inventoryItems.reduce((sum, item) => {
+                      const diff = item.actualQuantity - item.expectedQuantity;
+                      return sum + (diff < 0 ? diff : 0);
+                    }, 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const Inventory = () => {
   const { t } = useTranslation();
@@ -27,6 +175,8 @@ const Inventory = () => {
   const [inventories, setInventories] = useState<InventoryType[]>([]);
   const [isNewInventoryOpen, setIsNewInventoryOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [selectedInventory, setSelectedInventory] = useState<InventoryType | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
   // Load inventories
   useEffect(() => {
@@ -116,9 +266,8 @@ const Inventory = () => {
           variant="ghost" 
           size="sm"
           onClick={() => {
-            // In a real app, navigate to inventory detail view
-            // navigate(`/inventory/${inventory.id}`);
-            alert(t('stock.viewing_inventory') + " " + inventory.name);
+            setSelectedInventory(inventory);
+            setIsViewDialogOpen(true);
           }}
         >
           {t('common.view')}
@@ -129,15 +278,18 @@ const Inventory = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader 
-        title={t('stock.inventory')}
-        description={t('stock.inventory_description')}
-        action={{
-          label: t('stock.new_inventory'),
-          onClick: () => setIsNewInventoryOpen(true)
-        }}
-        icon={<Clipboard className="h-5 w-5" />}
-      />
+      <div className="flex justify-between items-center">
+        <PageHeader 
+          title={t('stock.inventory')}
+          description={t('stock.inventory_description')}
+          action={{
+            label: t('stock.new_inventory'),
+            onClick: () => setIsNewInventoryOpen(true)
+          }}
+          icon={<Clipboard className="h-5 w-5" />}
+        />
+        <InventoryHelp />
+      </div>
       
       {/* Tab selection */}
       <div className="flex justify-between items-center mb-4">
@@ -186,6 +338,13 @@ const Inventory = () => {
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* View inventory dialog */}
+      <InventoryViewDialog
+        inventory={selectedInventory}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+      />
     </div>
   );
 };

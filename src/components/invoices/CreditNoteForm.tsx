@@ -256,6 +256,7 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
       return;
     }
     
+    const now = new Date().toISOString();
     const creditNoteData: Omit<CreditNote, 'id' | 'createdAt' | 'updatedAt'> = {
       companyId,
       clientId: sourceInvoice?.clientId || '',
@@ -284,10 +285,16 @@ const CreditNoteForm: React.FC<CreditNoteFormProps> = ({
       appliedAmount: 0,
       remainingAmount: total,
       isFullyApplied: false,
-      applications: []
+      applications: [],
+      archiveVersion: 1,
+      archivedAt: now,
     };
     
     const newCreditNote = createCreditNote(creditNoteData);
+    
+    if (sourceInvoice) {
+      console.log(`Credit note ${newCreditNote.creditNoteNumber} created for invoice ${sourceInvoice.invoiceNumber}`);
+    }
     
     onSubmit(newCreditNote);
     

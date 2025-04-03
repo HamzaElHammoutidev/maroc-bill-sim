@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -20,12 +19,12 @@ import { InfoIcon, CheckCircle, HelpCircle, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MoroccanInvoiceRequirementsProps {
-  invoiceType?: 'standard' | 'credit-note' | 'proforma' | 'deposit';
+  type?: 'standard' | 'credit-note' | 'proforma' | 'deposit';
   onCopyText?: (text: string) => void;
 }
 
 const MoroccanInvoiceRequirements: React.FC<MoroccanInvoiceRequirementsProps> = ({
-  invoiceType = 'standard',
+  type = 'standard',
   onCopyText
 }) => {
   const { t, i18n } = useTranslation();
@@ -173,8 +172,8 @@ const MoroccanInvoiceRequirements: React.FC<MoroccanInvoiceRequirementsProps> = 
   };
 
   // Get the appropriate requirements list based on invoice type
-  const typedRequirements = [...requirements[invoiceType], ...requirements.standard.filter(req => 
-    !requirements[invoiceType].some(typeReq => typeReq.id === req.id)
+  const typedRequirements = [...requirements[type], ...requirements.standard.filter(req => 
+    !requirements[type].some(typeReq => typeReq.id === req.id)
   )];
 
   return (
@@ -182,10 +181,10 @@ const MoroccanInvoiceRequirements: React.FC<MoroccanInvoiceRequirementsProps> = 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <InfoIcon className="h-5 w-5 text-blue-500" />
-          {t(`legal.${invoiceType}_requirements`)}
+          {t(`legal.${type}_requirements`)}
         </CardTitle>
         <CardDescription>
-          {t(`legal.${invoiceType}_requirements_desc`)}
+          {t(`legal.${type}_requirements_desc`)}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -223,13 +222,13 @@ const MoroccanInvoiceRequirements: React.FC<MoroccanInvoiceRequirementsProps> = 
             </AccordionTrigger>
             <AccordionContent>
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md border text-sm whitespace-pre-line">
-                {defaultTexts[invoiceType]}
+                {defaultTexts[type]}
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="mt-2"
-                onClick={() => handleCopy(defaultTexts[invoiceType])}
+                onClick={() => handleCopy(defaultTexts[type])}
               >
                 <Copy className="h-4 w-4 mr-2" />
                 {t('common.copy_text')}

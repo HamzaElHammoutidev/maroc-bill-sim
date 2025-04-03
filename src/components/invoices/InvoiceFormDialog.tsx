@@ -19,6 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -90,6 +91,8 @@ const formSchema = z.object({
   isDeposit: z.boolean().default(false),
   depositPercentage: z.number().optional(),
   depositAmount: z.number().optional(),
+  hasFiscalStamp: z.boolean().default(false),
+  fiscalStampAmount: z.number().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -147,6 +150,8 @@ const InvoiceFormDialog: React.FC<InvoiceFormDialogProps> = ({
       isDeposit: invoice?.isDeposit || false,
       depositPercentage: invoice?.depositPercentage || 30,
       depositAmount: invoice?.depositAmount || 0,
+      hasFiscalStamp: invoice?.hasFiscalStamp || false,
+      fiscalStampAmount: invoice?.fiscalStampAmount || 20, // Default to 20 DH
     },
   });
   
@@ -621,39 +626,50 @@ const InvoiceFormDialog: React.FC<InvoiceFormDialogProps> = ({
                     </div>
                     
                     {showDepositOptions && (
-                      <div className="space-y-2 pl-6 border-l-2 border-primary/20 ml-1">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label>{t('invoices.deposit_percentage')}</Label>
-                            <div className="flex items-center">
-                              <Input
-                                type="number"
-                                min={1}
-                                max={100}
-                                value={form.watch("depositPercentage") || 30}
-                                onChange={(e) => {
-                                  const percentage = parseFloat(e.target.value);
-                                  form.setValue("depositPercentage", percentage);
-                                  
-                                  // Update deposit amount
-                                  const depositAmount = (total * percentage) / 100;
-                                  form.setValue("depositAmount", depositAmount);
-                                }}
-                                disabled={isDisabled}
-                                className="flex-1"
-                              />
-                              <span className="ml-2">%</span>
-                            </div>
-                          </div>
-                          <div>
-                            <Label>{t('invoices.deposit_amount')}</Label>
-                            <Input
-                              type="text"
-                              readOnly
-                              value={formatCurrency(form.watch("depositAmount") || 0)}
-                              disabled
-                            />
-                          </div>
+                      <div className="space-y-4 mt-2">
+                        <div className="flex flex-col gap-2">
+                          <FormField
+                            control={form.control}
+                            name="depositPercentage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('invoices.deposit_percentage')}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    {...field}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      field.onChange(value);
+                                      const depositAmount = (total * value) / 100;
+                                      form.setValue("depositAmount", depositAmount);
+                                    }}
+                                    disabled={isDisabled}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FormField
+                            control={form.control}
+                            name="depositAmount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('invoices.deposit_amount')}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    {...field}
+                                    disabled={true}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       </div>
                     )}
@@ -746,6 +762,59 @@ const InvoiceFormDialog: React.FC<InvoiceFormDialogProps> = ({
               onCustomNoticesChange={(value) => form.setValue("customLegalNotices", value)}
               disabled={isDisabled}
             />
+            
+            {/* Fiscal Stamp Section */}
+            <div className="space-y-2 pt-4">
+              <Separator />
+              <h3 className="text-lg font-medium">{t('invoices.fiscal_stamp') || "Timbre fiscal"}</h3>
+              
+              <FormField
+                control={form.control}
+                name="hasFiscalStamp"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>{t('invoices.add_fiscal_stamp') || "Ajouter un timbre fiscal"}</FormLabel>
+                      <FormDescription>
+                        {t('invoices.fiscal_stamp_description') || "Requis pour certains types de factures selon la réglementation en vigueur."}
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isDisabled}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              {form.watch("hasFiscalStamp") && (
+                <FormField
+                  control={form.control}
+                  name="fiscalStampAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('invoices.fiscal_stamp_amount') || "Montant du timbre"}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="20"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          disabled={isDisabled}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t('invoices.fiscal_stamp_info') || "Généralement 20 DH pour la plupart des factures commerciales"}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
             
             <DialogFooter>
               <Button

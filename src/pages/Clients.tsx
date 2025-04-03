@@ -32,6 +32,37 @@ import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+// Define client validation schema
+const clientFormSchema = z.object({
+  name: z.string().min(1, { message: 'Client name is required' }),
+  address: z.string().min(1, { message: 'Address is required' }),
+  city: z.string().min(1, { message: 'City is required' }),
+  phone: z.string().min(1, { message: 'Phone number is required' }),
+  ice: z.string().optional(),
+  if: z.string().optional(),
+  rc: z.string().optional(),
+  cnss: z.string().optional(),
+  email: z.string().email({ message: 'Invalid email address' }).optional().or(z.literal('')),
+  website: z.string().optional(),
+  contactName: z.string().optional(),
+  category: z.enum(['VIP', 'regular', 'prospect', 'new']).default('regular'),
+  preferredPaymentMethod: z.enum(['cash', 'bank', 'check', 'online', 'other']).default('bank'),
+  paymentTerms: z.string().optional()
+});
+
+type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 const Clients = () => {
   const { t } = useTranslation();
@@ -89,6 +120,27 @@ const Clients = () => {
   
   const [isAddingContact, setIsAddingContact] = useState(false);
   
+  // Initialize form
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: {
+      name: '',
+      address: '',
+      city: '',
+      phone: '',
+      ice: '',
+      if: '',
+      rc: '',
+      cnss: '',
+      email: '',
+      website: '',
+      contactName: '',
+      category: 'regular',
+      preferredPaymentMethod: 'bank',
+      paymentTerms: '30 days',
+    }
+  });
+  
   const handleAddContact = () => {
     if (!newContact.name || !newContact.role) {
       toast.error(t('clients.contact_validation_error'));
@@ -127,20 +179,19 @@ const Clients = () => {
     toast.success(t('clients.contacts.removed'));
   };
   
-  const handleAddClient = () => {
-    // Validate form
-    if (!newClient.name || !newClient.address || !newClient.city || !newClient.phone) {
-      toast.error(t('clients.validation_error'));
-      return;
-    }
-    
+  const handleAddClient = (data: ClientFormValues) => {
     // Create new client with unique ID and timestamps
     const newClientWithId: Client = {
-      ...newClient as Omit<Client, 'id' | 'createdAt' | 'updatedAt'>,
+      ...data,
       id: `client-${Date.now()}`,
       companyId,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      phone: data.phone,
+      contacts: newClient.contacts || []
     };
     
     // Add client to state
@@ -165,6 +216,7 @@ const Clients = () => {
       paymentTerms: '30 days',
       contacts: []
     });
+    form.reset();
     setIsAddClientDialogOpen(false);
     
     toast.success(t('clients.added_success'));
@@ -308,6 +360,59 @@ const Clients = () => {
     setIsDeleteDialogOpen(true);
   };
   
+  // Add state for managing contacts in edit mode
+  const [isAddingEditContact, setIsAddingEditContact] = useState(false);
+  const [editContact, setEditContact] = useState({
+    name: '',
+    role: '',
+    email: '',
+    phone: ''
+  });
+  
+  // Add handlers for edit contact
+  const handleEditContactInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditContact(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleAddEditContact = () => {
+    if (!editContact.name || !editContact.role) {
+      toast.error(t('clients.contact_validation_error'));
+      return;
+    }
+    
+    const contact = {
+      id: `contact-${Date.now()}`,
+      name: editContact.name,
+      role: editContact.role,
+      email: editContact.email,
+      phone: editContact.phone
+    };
+    
+    setSelectedClient(prev => ({
+      ...prev!,
+      contacts: [...(prev?.contacts || []), contact]
+    }));
+    
+    setEditContact({
+      name: '',
+      role: '',
+      email: '',
+      phone: ''
+    });
+    
+    setIsAddingEditContact(false);
+    toast.success(t('clients.contacts.added'));
+  };
+  
+  const handleRemoveEditContact = (contactId: string) => {
+    setSelectedClient(prev => ({
+      ...prev!,
+      contacts: (prev?.contacts || []).filter(c => c.id !== contactId)
+    }));
+    toast.success(t('clients.contacts.removed'));
+  };
+  
   const columns: Column<Client>[] = [
     {
       header: t('clients.name'),
@@ -448,7 +553,7 @@ const Clients = () => {
       
       {/* Add Client Dialog */}
       <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('clients.add')}</DialogTitle>
             <DialogDescription>
@@ -456,281 +561,343 @@ const Clients = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t('clients.name')} *</Label>
-              <Input
-                id="name"
-                name="name"
-                value={newClient.name}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="contactName">{t('clients.contact_name')}</Label>
-              <Input
-                id="contactName"
-                name="contactName"
-                value={newClient.contactName}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="category">{t('clients.category.label')}</Label>
-              <Select
-                value={newClient.category}
-                onValueChange={(value) => handleSelectChange('category', value)}
-              >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder={t('clients.category.select')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="VIP">VIP</SelectItem>
-                  <SelectItem value="regular">{t('clients.category.regular')}</SelectItem>
-                  <SelectItem value="prospect">{t('clients.category.prospect')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="preferredPaymentMethod">{t('clients.preferredPaymentMethod')}</Label>
-              <Select
-                value={newClient.preferredPaymentMethod}
-                onValueChange={(value) => handleSelectChange('preferredPaymentMethod', value)}
-              >
-                <SelectTrigger id="preferredPaymentMethod">
-                  <SelectValue placeholder={t('clients.payment_select')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">{t('payment.methods.cash')}</SelectItem>
-                  <SelectItem value="bank">{t('payment.methods.bank')}</SelectItem>
-                  <SelectItem value="check">{t('payment.methods.check')}</SelectItem>
-                  <SelectItem value="other">{t('payment.methods.other')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="paymentTerms">{t('clients.paymentTerms')}</Label>
-              <Input
-                id="paymentTerms"
-                name="paymentTerms"
-                value={newClient.paymentTerms}
-                onChange={handleInputChange}
-                placeholder="30 days, 60 days, etc."
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="ice">{t('clients.ice')}</Label>
-              <Input
-                id="ice"
-                name="ice"
-                value={newClient.ice}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="if">{t('clients.if')}</Label>
-              <Input
-                id="if"
-                name="if"
-                value={newClient.if}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="rc">{t('clients.rc')}</Label>
-              <Input
-                id="rc"
-                name="rc"
-                value={newClient.rc}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cnss">{t('clients.cnss')}</Label>
-              <Input
-                id="cnss"
-                name="cnss"
-                value={newClient.cnss}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">{t('clients.email')}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={newClient.email}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="website">{t('clients.website')}</Label>
-              <Input
-                id="website"
-                name="website"
-                value={newClient.website}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">{t('clients.phone')} *</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={newClient.phone}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="city">{t('clients.city')} *</Label>
-              <Input
-                id="city"
-                name="city"
-                value={newClient.city}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="address">{t('clients.address')} *</Label>
-              <Input
-                id="address"
-                name="address"
-                value={newClient.address}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            {/* Contacts section */}
-            <div className="sm:col-span-2 space-y-2 mt-4">
-              <div className="flex justify-between items-center">
-                <Label>{t('clients.contacts.title')}</Label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setIsAddingContact(true)}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  {t('clients.contacts.add')}
-                </Button>
-              </div>
-              
-              {newClient.contacts && newClient.contacts.length > 0 ? (
-                <div className="space-y-2 mt-2">
-                  {newClient.contacts.map(contact => (
-                    <div key={contact.id} className="flex items-center justify-between border p-2 rounded-md">
-                      <div>
-                        <p className="font-medium">{contact.name}</p>
-                        <p className="text-sm text-muted-foreground">{contact.role}</p>
-                        {contact.email && <p className="text-sm">{contact.email}</p>}
-                        {contact.phone && <p className="text-sm">{contact.phone}</p>}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleRemoveContact(contact.id)}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAddClient)}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.name')} *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contactName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.contact_name')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.category.label')}</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
                       >
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t('clients.contacts.none')}</p>
-              )}
-              
-              {isAddingContact && (
-                <div className="border p-4 rounded-md mt-2">
-                  <h4 className="font-medium mb-2">{t('clients.contacts.new')}</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="contactName">{t('clients.contacts.name')} *</Label>
-                      <Input
-                        id="contactName"
-                        name="name"
-                        value={newContact.name}
-                        onChange={handleContactInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="contactRole">{t('clients.contacts.role')} *</Label>
-                      <Input
-                        id="contactRole"
-                        name="role"
-                        value={newContact.role}
-                        onChange={handleContactInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="contactEmail">{t('clients.contacts.email')}</Label>
-                      <Input
-                        id="contactEmail"
-                        name="email"
-                        type="email"
-                        value={newContact.email}
-                        onChange={handleContactInputChange}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="contactPhone">{t('clients.contacts.phone')}</Label>
-                      <Input
-                        id="contactPhone"
-                        name="phone"
-                        value={newContact.phone}
-                        onChange={handleContactInputChange}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-2 space-x-2">
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('clients.category.select')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="VIP">VIP</SelectItem>
+                          <SelectItem value="regular">{t('clients.category.regular')}</SelectItem>
+                          <SelectItem value="prospect">{t('clients.category.prospect')}</SelectItem>
+                          <SelectItem value="new">{t('clients.category.new')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="preferredPaymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.preferredPaymentMethod')}</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('clients.payment_select')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">{t('payment.methods.cash')}</SelectItem>
+                          <SelectItem value="bank">{t('payment.methods.bank')}</SelectItem>
+                          <SelectItem value="check">{t('payment.methods.check')}</SelectItem>
+                          <SelectItem value="online">{t('payment.methods.online')}</SelectItem>
+                          <SelectItem value="other">{t('payment.methods.other')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="paymentTerms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.paymentTerms')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="30 days, 60 days, etc." />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="ice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.ice')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="if"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.if')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="rc"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.rc')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="cnss"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.cnss')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.email')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.website')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.phone')} *</FormLabel>
+                      <FormControl>
+                        <Input {...field} required />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.city')} *</FormLabel>
+                      <FormControl>
+                        <Input {...field} required />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('clients.address')} *</FormLabel>
+                      <FormControl>
+                        <Input {...field} required />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Contacts section */}
+                <div className="sm:col-span-2 space-y-2 mt-4">
+                  <div className="flex justify-between items-center">
+                    <Label>{t('clients.contacts.title')}</Label>
                     <Button 
                       type="button" 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setIsAddingContact(false)}
+                      onClick={() => setIsAddingContact(true)}
                     >
-                      {t('form.cancel')}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      size="sm"
-                      onClick={handleAddContact}
-                    >
-                      {t('form.add')}
+                      <Users className="mr-2 h-4 w-4" />
+                      {t('clients.contacts.add')}
                     </Button>
                   </div>
+                  
+                  {newClient.contacts && newClient.contacts.length > 0 ? (
+                    <div className="space-y-2 mt-2">
+                      {newClient.contacts.map(contact => (
+                        <div key={contact.id} className="flex items-center justify-between border p-2 rounded-md">
+                          <div>
+                            <p className="font-medium">{contact.name}</p>
+                            <p className="text-sm text-muted-foreground">{contact.role}</p>
+                            {contact.email && <p className="text-sm">{contact.email}</p>}
+                            {contact.phone && <p className="text-sm">{contact.phone}</p>}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemoveContact(contact.id)}
+                          >
+                            <Trash className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{t('clients.contacts.none')}</p>
+                  )}
+                  
+                  {isAddingContact && (
+                    <div className="border p-4 rounded-md mt-2">
+                      <h4 className="font-medium mb-2">{t('clients.contacts.new')}</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label htmlFor="contactName">{t('clients.contacts.name')} *</Label>
+                          <Input
+                            id="contactName"
+                            name="name"
+                            value={newContact.name}
+                            onChange={handleContactInputChange}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="contactRole">{t('clients.contacts.role')} *</Label>
+                          <Input
+                            id="contactRole"
+                            name="role"
+                            value={newContact.role}
+                            onChange={handleContactInputChange}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="contactEmail">{t('clients.contacts.email')}</Label>
+                          <Input
+                            id="contactEmail"
+                            name="email"
+                            type="email"
+                            value={newContact.email}
+                            onChange={handleContactInputChange}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="contactPhone">{t('clients.contacts.phone')}</Label>
+                          <Input
+                            id="contactPhone"
+                            name="phone"
+                            value={newContact.phone}
+                            onChange={handleContactInputChange}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end mt-2 space-x-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setIsAddingContact(false)}
+                        >
+                          {t('form.cancel')}
+                        </Button>
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          onClick={handleAddContact}
+                        >
+                          {t('form.add')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>
-              {t('form.cancel')}
-            </Button>
-            <Button onClick={handleAddClient}>
-              {t('form.save')}
-            </Button>
-          </DialogFooter>
+              </div>
+              
+              <DialogFooter className="mt-6">
+                <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)} type="button">
+                  {t('form.cancel')}
+                </Button>
+                <Button type="submit">
+                  {t('form.save')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
       
@@ -780,6 +947,7 @@ const Clients = () => {
                     <SelectItem value="VIP">VIP</SelectItem>
                     <SelectItem value="regular">{t('clients.category.regular')}</SelectItem>
                     <SelectItem value="prospect">{t('clients.category.prospect')}</SelectItem>
+                    <SelectItem value="new">{t('clients.category.new')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -797,6 +965,7 @@ const Clients = () => {
                     <SelectItem value="cash">{t('payment.methods.cash')}</SelectItem>
                     <SelectItem value="bank">{t('payment.methods.bank')}</SelectItem>
                     <SelectItem value="check">{t('payment.methods.check')}</SelectItem>
+                    <SelectItem value="online">{t('payment.methods.online')}</SelectItem>
                     <SelectItem value="other">{t('payment.methods.other')}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -907,10 +1076,22 @@ const Clients = () => {
                 />
               </div>
               
-              {/* Contacts section - readonly in edit mode for simplicity */}
-              {selectedClient.contacts && selectedClient.contacts.length > 0 && (
-                <div className="sm:col-span-2 space-y-2 mt-4">
+              {/* Contacts section in edit form */}
+              <div className="sm:col-span-2 space-y-2 mt-4">
+                <div className="flex justify-between items-center">
                   <Label>{t('clients.contacts.title')}</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsAddingEditContact(true)}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    {t('clients.contacts.add')}
+                  </Button>
+                </div>
+                
+                {selectedClient.contacts && selectedClient.contacts.length > 0 ? (
                   <div className="space-y-2 mt-2">
                     {selectedClient.contacts.map(contact => (
                       <div key={contact.id} className="flex items-center justify-between border p-2 rounded-md">
@@ -920,11 +1101,84 @@ const Clients = () => {
                           {contact.email && <p className="text-sm">{contact.email}</p>}
                           {contact.phone && <p className="text-sm">{contact.phone}</p>}
                         </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleRemoveEditContact(contact.id)}
+                        >
+                          <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t('clients.contacts.none')}</p>
+                )}
+                
+                {isAddingEditContact && (
+                  <div className="border p-4 rounded-md mt-2">
+                    <h4 className="font-medium mb-2">{t('clients.contacts.new')}</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="editContactName">{t('clients.contacts.name')} *</Label>
+                        <Input
+                          id="editContactName"
+                          name="name"
+                          value={editContact.name}
+                          onChange={handleEditContactInputChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="editContactRole">{t('clients.contacts.role')} *</Label>
+                        <Input
+                          id="editContactRole"
+                          name="role"
+                          value={editContact.role}
+                          onChange={handleEditContactInputChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="editContactEmail">{t('clients.contacts.email')}</Label>
+                        <Input
+                          id="editContactEmail"
+                          name="email"
+                          type="email"
+                          value={editContact.email}
+                          onChange={handleEditContactInputChange}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="editContactPhone">{t('clients.contacts.phone')}</Label>
+                        <Input
+                          id="editContactPhone"
+                          name="phone"
+                          value={editContact.phone}
+                          onChange={handleEditContactInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end mt-2 space-x-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsAddingEditContact(false)}
+                      >
+                        {t('form.cancel')}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        size="sm"
+                        onClick={handleAddEditContact}
+                      >
+                        {t('form.add')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           

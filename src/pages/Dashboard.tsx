@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +46,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Invoice } from '@/data/mockData';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -56,6 +64,8 @@ const Dashboard = () => {
   const companyId = user?.companyId || '101'; // Default for demo
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   // Get data with the refreshKey dependency
   const stats = React.useMemo(() => getInvoiceStats(companyId), [companyId, refreshKey]);
@@ -99,6 +109,20 @@ const Dashboard = () => {
       description: `${t('invoices.downloading')} #${invoiceId}`,
     });
   }, [toast, t]);
+  
+  const handleDeleteInvoice = (invoice: Invoice) => {
+    // In a real application, this would call an API to delete the invoice
+    const updatedInvoices = mockInvoices.filter(inv => inv.id !== invoice.id);
+    // Update local state or call a state management function
+    // For this demo, we'll just close the dialog and show a toast
+    setIsDeleteDialogOpen(false);
+    setInvoiceToDelete(null);
+    
+    toast({
+      title: t('invoices.deleted'),
+      description: `${t('invoices.invoice')} #${invoice.invoiceNumber} ${t('common.deleted')}`,
+    });
+  };
   
   // COLORS
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -337,10 +361,11 @@ const Dashboard = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
                                 onClick={() => {
-                                  toast({
-                                    title: t('invoices.edit'),
-                                    description: `${t('invoices.editing')} #${invoice.invoiceNumber}`,
-                                  });
+                                  // Navigate to the invoice edit page
+                                  // Assuming you have a router setup like react-router
+                                  window.location.href = `/invoices/edit/${invoice.id}`;
+                                  // In a real application with React Router, you would use:
+                                  // navigate(`/invoices/edit/${invoice.id}`);
                                 }}
                               >
                                 <Edit className="mr-2 h-4 w-4" />
@@ -349,11 +374,8 @@ const Dashboard = () => {
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => {
-                                  toast({
-                                    title: t('invoices.delete'),
-                                    description: `${t('invoices.delete_confirmation')} #${invoice.invoiceNumber}`,
-                                    variant: "destructive"
-                                  });
+                                  setInvoiceToDelete(invoice);
+                                  setIsDeleteDialogOpen(true);
                                 }}
                               >
                                 <Trash className="mr-2 h-4 w-4" />
@@ -378,16 +400,42 @@ const Dashboard = () => {
             variant="outline"
             size="sm"
             onClick={() => {
-              toast({
-                title: t('common.view_all'),
-                description: t('invoices.view_all_redirect'),
-              });
+              // Navigate to the invoices page
+              window.location.href = '/invoices';
+              // In a real application with React Router, you would use:
+              // navigate('/invoices');
             }}
           >
             {t('common.view_all')}
           </Button>
         </CardFooter>
       </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('invoices.delete_confirmation_title')}</DialogTitle>
+            <DialogDescription>
+              {t('invoices.delete_confirmation')} #{invoiceToDelete?.invoiceNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => invoiceToDelete && handleDeleteInvoice(invoiceToDelete)}
+            >
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

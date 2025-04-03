@@ -20,6 +20,8 @@ import QuoteVATDetails from './QuoteVATDetails';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import { CurrencySelector } from '../CurrencySelector';
 import { defaultCurrency } from '@/config/moroccoConfig';
+import { toast } from '@/components/ui/use-toast';
+import { generateQuotePDF } from '../../lib/pdfGenerator';
 
 // This function will need to be implemented or imported 
 // when jsPDF and html2canvas are installed
@@ -515,44 +517,140 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
 
   // Print handler
   const handlePrint = () => {
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    // Generate print content
-    const printContent = generateQuoteContent(quote, client, company, t, isRTL);
-
-    // Write to the window and print
-    printWindow.document.open();
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    
-    // Print after the content is loaded
-    printWindow.onload = function() {
-      printWindow.print();
-    };
+    try {
+      // Get client and company data
+      const client = getClientById(quote.clientId);
+      const company = quote.companyId ? getCompanyById(quote.companyId) : undefined;
+      
+      // Generate PDF
+      const doc = generateQuotePDF(quote, client, company);
+      
+      // Open and print the PDF 
+      const pdfData = doc.output('dataurlstring');
+      const printWindow = window.open('');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Print Quote</title>
+              <style>
+                body { margin: 0; padding: 0; }
+                iframe { width: 100%; height: 100%; border: none; }
+              </style>
+            </head>
+            <body>
+              <iframe src="${pdfData}" onload="setTimeout(function() { window.print(); window.close(); }, 500)"></iframe>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+      
+      // Show success notification
+      toast({
+        title: t('common.success'),
+        description: t('quotes.print_success'),
+      });
+    } catch (error) {
+      console.error('Failed to print PDF:', error);
+      
+      // Show error notification
+      toast({
+        title: t('common.error'),
+        description: t('quotes.print_error'),
+        variant: 'destructive',
+      });
+    }
   };
 
   // PDF export handler
   const handleExportPDF = () => {
-    // Create a container for the PDF content
-    const tempDiv = document.createElement('div');
-    tempDiv.id = 'pdf-export-container';
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    document.body.appendChild(tempDiv);
-    
-    // Generate content
-    const pdfContent = generateQuoteContent(quote, client, company, t, isRTL);
-    tempDiv.innerHTML = pdfContent;
-    
-    // Generate and download the PDF
-    generatePDF('pdf-export-container', `quote-${quote.quoteNumber}`);
-    
-    // Clean up
-    setTimeout(() => {
-      document.body.removeChild(tempDiv);
-    }, 100);
+    try {
+      // Get client and company data
+      const client = getClientById(quote.clientId);
+      const company = quote.companyId ? getCompanyById(quote.companyId) : undefined;
+      
+      // Generate PDF
+      const doc = generateQuotePDF(quote, client, company);
+      
+      // Save the PDF with a filename based on quote number
+      doc.save(`Quote-${quote.quoteNumber}.pdf`);
+      
+      // Show success notification
+      toast({
+        title: t('common.success'),
+        description: t('quotes.download_success'),
+      });
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      
+      // Show error notification
+      toast({
+        title: t('common.error'),
+        description: t('quotes.download_error'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleShare = () => {
+    try {
+      // Get client and company data
+      const client = getClientById(quote.clientId);
+      const company = quote.companyId ? getCompanyById(quote.companyId) : undefined;
+      
+      // Generate PDF
+      const doc = generateQuotePDF(quote, client, company);
+      
+      // Create a blob from the PDF data
+      const pdfBlob = doc.output('blob');
+      
+      // Check if the Web Share API is available
+      if (navigator.share) {
+        // Create a file to share
+        const file = new File([pdfBlob], `Quote-${quote.quoteNumber}.pdf`, { 
+          type: 'application/pdf' 
+        });
+        
+        // Use the Web Share API to share the file
+        navigator.share({
+          title: `Quote #${quote.quoteNumber}`,
+          text: `Quote for ${client?.name || 'Client'}`,
+          files: [file]
+        })
+        .then(() => {
+          toast({
+            title: t('common.success'),
+            description: t('quotes.share_success'),
+          });
+        })
+        .catch(error => {
+          console.error('Share failed:', error);
+          // Fallback to downloading if sharing fails
+          doc.save(`Quote-${quote.quoteNumber}.pdf`);
+          toast({
+            title: t('common.info'),
+            description: t('quotes.share_fallback'),
+          });
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        doc.save(`Quote-${quote.quoteNumber}.pdf`);
+        toast({
+          title: t('common.info'),
+          description: t('quotes.share_not_supported'),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to share PDF:', error);
+      
+      // Show error notification
+      toast({
+        title: t('common.error'),
+        description: t('quotes.share_error'),
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -790,6 +888,16 @@ const QuoteDetailsDialog: React.FC<QuoteDetailsDialogProps> = ({
             >
               <FileDown className="h-4 w-4 mr-1" />
               {t('quotes.export_pdf')}
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="w-full col-span-2 sm:col-span-4 mt-2"
+            >
+              <FilePieChart className="h-4 w-4 mr-1" />
+              {t('quotes.share')}
             </Button>
             
             <Button

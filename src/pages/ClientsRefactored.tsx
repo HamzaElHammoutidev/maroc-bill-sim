@@ -363,6 +363,7 @@ const ClientsRefactored = () => {
           { value: 'cash', label: t('payment.methods.cash') },
           { value: 'bank', label: t('payment.methods.bank') },
           { value: 'check', label: t('payment.methods.check') },
+          { value: 'online', label: t('payment.methods.online') },
           { value: 'other', label: t('payment.methods.other') }
         ]}
         placeholder={t('clients.payment_select')}
@@ -489,7 +490,8 @@ const ClientsRefactored = () => {
           options={[
             { value: 'VIP', label: 'VIP' },
             { value: 'regular', label: t('clients.category.regular') },
-            { value: 'prospect', label: t('clients.category.prospect') }
+            { value: 'prospect', label: t('clients.category.prospect') },
+            { value: 'new', label: t('clients.category.new') }
           ]}
         />
         
@@ -503,6 +505,7 @@ const ClientsRefactored = () => {
             { value: 'cash', label: t('payment.methods.cash') },
             { value: 'bank', label: t('payment.methods.bank') },
             { value: 'check', label: t('payment.methods.check') },
+            { value: 'online', label: t('payment.methods.online') },
             { value: 'other', label: t('payment.methods.other') }
           ]}
         />

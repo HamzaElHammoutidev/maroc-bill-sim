@@ -36,9 +36,9 @@ export interface Client {
   createdAt: string;
   updatedAt: string;
   // Additional fields for customer management
-  category?: 'VIP' | 'regular' | 'prospect' | string; // Customer segmentation
+  category?: 'VIP' | 'regular' | 'prospect' | 'new' | string; // Customer segmentation
   contacts?: Contact[]; // Additional contact persons
-  preferredPaymentMethod?: 'cash' | 'bank' | 'check' | 'other';
+  preferredPaymentMethod?: 'cash' | 'bank' | 'check' | 'online' | 'other';
   paymentTerms?: string; // Standard payment terms (30 days, 60 days, etc.)
 }
 
@@ -126,11 +126,31 @@ export interface Invoice {
   vatAmount: number;
   discount: number;
   total: number;
+  paidAmount?: number; // Amount already paid
+  lastPaymentDate?: string; // Date of the last payment
   notes?: string;
   terms?: string;
   createdAt: string;
   updatedAt: string;
   quoteId?: string; // If converted from a quote
+  
+  // Fiscal stamp information
+  hasFiscalStamp?: boolean;
+  fiscalStampAmount?: number;
+  fiscalStampId?: string;
+  
+  // Invoice validation and locking
+  isValidated?: boolean;
+  validatedAt?: string;
+  validatedBy?: string;
+  isLocked?: boolean; // When true, invoice number is finalized and cannot be modified
+  
+  // Email tracking
+  sentAt?: string;
+  sentBy?: string;
+  emailRecipients?: string[];
+  emailCc?: string[];
+  emailHistory?: EmailHistoryEntry[];
   
   // Deposit information
   isDeposit?: boolean;
@@ -144,6 +164,11 @@ export interface Invoice {
   hasCreditNotes?: boolean;
   creditNoteIds?: string[]; // IDs of credit notes associated with this invoice
   creditNoteTotal?: number; // Total amount of credit notes applied to this invoice
+  
+  // Document archiving
+  archiveVersion?: number; // Version number for archiving
+  archiveUrl?: string; // URL to archived document
+  archivedAt?: string; // When the invoice was archived
 }
 
 export type ProformaInvoiceStatus = 'draft' | 'sent' | 'converted' | 'expired' | 'cancelled';
@@ -196,6 +221,11 @@ export interface CreditNote {
   remainingAmount?: number; // Amount still available to apply
   isFullyApplied?: boolean; // Whether the credit note has been fully applied
   applications?: CreditNoteApplication[]; // Where the credit note has been applied
+  
+  // Document archiving
+  archiveVersion?: number; // Version number for archiving
+  archiveUrl?: string; // URL to archived document
+  archivedAt?: string; // When the credit note was archived
 }
 
 export interface CreditNoteApplication {
@@ -280,12 +310,13 @@ export interface Payment {
   transactionId?: string;
   amount: number;
   date: string;
-  method: 'cash' | 'bank' | 'check' | 'other';
+  method: 'cash' | 'bank' | 'check' | 'online' | 'other';
   reference?: string;
   notes?: string;
   status: PaymentStatus;
   createdAt: string;
   updatedAt: string;
+  additionalFields?: Record<string, string>; // For storing method-specific details
 }
 
 export interface Contact {
@@ -2790,3 +2821,147 @@ export const mockProformaInvoices: ProformaInvoice[] = [
     updatedAt: '2023-09-10T00:00:00Z'
   }
 ];
+
+export interface AdvancePaymentReportItem {
+  id: string;
+  depositInvoiceId: string;
+  depositInvoiceNumber: string;
+  clientId: string;
+  clientName?: string;
+  date: string;
+  total: number;
+  mainInvoiceId?: string;
+  mainInvoiceNumber?: string;
+  depositPercentage: number;
+  remainingAmount: number;
+  status: string;
+}
+
+// Function to get advance payment report data
+export const getAdvancePaymentReport = (
+  companyId: string,
+  filters?: {
+    clientId?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string[];
+  }
+): AdvancePaymentReportItem[] => {
+  // Find all invoices that are deposits
+  let depositInvoices = mockInvoices.filter(
+    invoice => invoice.companyId === companyId && invoice.isDeposit === true
+  );
+  
+  // Apply filters if provided
+  if (filters) {
+    if (filters.clientId) {
+      depositInvoices = depositInvoices.filter(
+        invoice => invoice.clientId === filters.clientId
+      );
+    }
+    
+    if (filters.startDate) {
+      depositInvoices = depositInvoices.filter(
+        invoice => new Date(invoice.date) >= new Date(filters.startDate!)
+      );
+    }
+    
+    if (filters.endDate) {
+      depositInvoices = depositInvoices.filter(
+        invoice => new Date(invoice.date) <= new Date(filters.endDate!)
+      );
+    }
+    
+    if (filters.status && filters.status.length > 0) {
+      depositInvoices = depositInvoices.filter(
+        invoice => filters.status!.includes(invoice.status)
+      );
+    }
+  }
+  
+  // Create report items
+  const reportItems: AdvancePaymentReportItem[] = depositInvoices.map(invoice => {
+    const client = getClientById(invoice.clientId);
+    const mainInvoice = invoice.depositForInvoiceId 
+      ? getInvoiceById(invoice.depositForInvoiceId) 
+      : undefined;
+    
+    return {
+      id: `apr-${invoice.id}`,
+      depositInvoiceId: invoice.id,
+      depositInvoiceNumber: invoice.invoiceNumber,
+      clientId: invoice.clientId,
+      clientName: client?.name,
+      date: invoice.date,
+      total: invoice.total,
+      mainInvoiceId: mainInvoice?.id,
+      mainInvoiceNumber: mainInvoice?.invoiceNumber,
+      depositPercentage: invoice.depositPercentage || 0,
+      remainingAmount: mainInvoice ? (mainInvoice.total - invoice.total) : invoice.total,
+      status: invoice.status
+    };
+  });
+  
+  // Sort by date (newest first)
+  return reportItems.sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+};
+
+// Function to create a new payment and update the related invoice
+export const createPayment = (paymentData: any): Payment => {
+  const now = new Date().toISOString();
+  const { invoiceId, amount, method, date, reference, notes, companyId, status, additionalFields } = paymentData;
+  
+  // Create a new transaction ID
+  const transactionId = `TR-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`;
+  
+  // Create the payment object
+  const newPayment: Payment = {
+    id: `pay-${Date.now()}`,
+    companyId,
+    invoiceId,
+    transactionId,
+    amount,
+    date: date.toISOString(),
+    method,
+    reference: reference || undefined,
+    notes: notes || undefined,
+    status: status || 'completed',
+    createdAt: now,
+    updatedAt: now,
+    additionalFields: additionalFields || undefined
+  };
+  
+  // Add the payment to the mock payments
+  mockPayments.unshift(newPayment);
+  
+  // Update the invoice
+  const invoiceIndex = mockInvoices.findIndex(inv => inv.id === invoiceId);
+  if (invoiceIndex !== -1) {
+    const invoice = mockInvoices[invoiceIndex];
+    
+    // Calculate current paid amount
+    const currentPaidAmount = invoice.paidAmount || 0;
+    const newPaidAmount = currentPaidAmount + amount;
+    
+    // Determine new status
+    let newStatus: InvoiceStatus = invoice.status;
+    if (newPaidAmount >= invoice.total) {
+      newStatus = 'paid';
+    } else if (newPaidAmount > 0) {
+      newStatus = 'partial';
+    }
+    
+    // Update the invoice
+    mockInvoices[invoiceIndex] = {
+      ...invoice,
+      paidAmount: newPaidAmount,
+      status: newStatus,
+      lastPaymentDate: date.toISOString(),
+      updatedAt: now
+    };
+  }
+  
+  return newPayment;
+};

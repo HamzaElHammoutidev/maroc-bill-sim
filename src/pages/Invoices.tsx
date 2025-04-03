@@ -174,18 +174,74 @@ const Invoices = () => {
   };
   
   const handleSendInvoice = (invoice: Invoice) => {
-    // Only allow sending of draft invoices
-    if (invoice.status !== 'draft') {
-      toast({
-        title: t('invoices.send_error'),
-        description: t('invoices.send_error_desc'),
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    setSelectedInvoice(invoice);
     setIsSendOpen(true);
+    setSelectedInvoice(invoice);
+  };
+  
+  const handleSendInvoiceSubmit = (data: any) => {
+    if (selectedInvoice) {
+      // Lock the invoice number by marking the invoice as validated
+      const now = new Date().toISOString();
+      const updatedInvoice: Invoice = {
+        ...selectedInvoice,
+        status: 'sent' as InvoiceStatus,
+        updatedAt: now,
+        // Lock and validate the invoice
+        isValidated: true,
+        validatedAt: now,
+        validatedBy: 'current-user', // In a real app, this would be the current user's ID
+        isLocked: true, // Lock the invoice number and prevent changes
+        // Email tracking
+        sentAt: now,
+        sentBy: 'current-user',
+        emailRecipients: [data.recipient],
+        emailCc: data.cc ? [data.cc] : [],
+      };
+      
+      // Update invoices list
+      const updatedInvoices = invoices.map(inv => 
+        inv.id === selectedInvoice.id ? updatedInvoice : inv
+      );
+      
+      setInvoices(updatedInvoices);
+      
+      // Generate PDF and archive the invoice
+      archiveInvoice(updatedInvoice);
+      
+      // Close dialog and show toast
+      setIsSendOpen(false);
+      
+      toast({
+        title: t('invoices.sent'),
+        description: `${t('invoices.invoice')} #${selectedInvoice.invoiceNumber}`,
+      });
+    }
+  };
+  
+  // Function to archive the invoice for record keeping
+  const archiveInvoice = (invoice: Invoice) => {
+    // In a real application, this would:
+    // 1. Generate a PDF of the invoice
+    // 2. Store it in a secure storage
+    // 3. Record the archive details in the database
+    
+    const archiveVersion = 1; // First archive version
+    const archiveUrl = `archives/invoices/${invoice.invoiceNumber}-v${archiveVersion}.pdf`;
+    
+    // Update the invoice with archive information
+    const updatedInvoice: Invoice = {
+      ...invoice,
+      archiveVersion,
+      archiveUrl,
+      archivedAt: new Date().toISOString(),
+    };
+    
+    // In a real app, this would update the invoice in the database
+    const updatedInvoices = invoices.map(inv => 
+      inv.id === invoice.id ? updatedInvoice : inv
+    );
+    
+    setInvoices(updatedInvoices);
   };
   
   const handleMarkAsPaid = (invoice: Invoice) => {
@@ -266,10 +322,54 @@ const Invoices = () => {
   };
   
   const handleDownloadInvoice = (invoice: Invoice) => {
+    // Create a PDF document using a library like jsPDF or pdfmake
+    // This is a simplified version that generates a simple PDF
+    
+    // First show loading toast
     toast({
-      title: t('invoices.downloading'),
+      title: t('invoices.generating_pdf'),
       description: `${t('invoices.invoice')} #${invoice.invoiceNumber}`,
     });
+    
+    try {
+      // In a real implementation, this would use a proper PDF generation library
+      // and include all invoice details formatted correctly
+      
+      // Create a hidden anchor element for the download
+      const link = document.createElement('a');
+      
+      // In a real app, this URL would point to a server endpoint that generates the PDF
+      // or we would use a client-side PDF library
+      const pdfUrl = `/api/invoices/${invoice.id}/pdf`;
+      
+      // For this demo, we'll create a data URL with minimal content
+      // In production, replace this with actual PDF generation
+      const blob = new Blob([`Invoice #${invoice.invoiceNumber}\nTotal: ${invoice.total}`], 
+        { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      link.href = url;
+      link.download = `Invoice-${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Success toast
+      toast({
+        title: t('invoices.download_complete'),
+        description: `${t('invoices.invoice')} #${invoice.invoiceNumber}`,
+      });
+    } catch (error) {
+      // Error toast
+      toast({
+        title: t('invoices.download_error'),
+        description: t('common.error_occurred'),
+        variant: 'destructive'
+      });
+    }
   };
   
   const handleInvoiceFormSubmit = (data: any) => {
@@ -290,7 +390,12 @@ const Invoices = () => {
       discount += item.discount;
     });
     
-    const total = subtotal + vatAmount - discount;
+    let total = subtotal + vatAmount - discount;
+    
+    // Add fiscal stamp amount if enabled
+    if (data.hasFiscalStamp && data.fiscalStampAmount) {
+      total += data.fiscalStampAmount;
+    }
     
     // Create the new invoice
     const newInvoice: Invoice = {
@@ -322,68 +427,23 @@ const Invoices = () => {
       updatedAt: new Date().toISOString(),
       isDeposit: data.isDeposit,
       depositPercentage: data.depositPercentage,
-      depositAmount: data.depositAmount
+      depositAmount: data.depositAmount,
+      // Fiscal stamp data
+      hasFiscalStamp: data.hasFiscalStamp,
+      fiscalStampAmount: data.hasFiscalStamp ? data.fiscalStampAmount : 0,
     };
     
-    if (isCreateForm) {
-      // Add the new invoice to the list
-      setInvoices([newInvoice, ...invoices]);
-      
-      toast({
-        title: t('invoices.created'),
-        description: `${t('invoices.invoice')} #${invoiceNumber} ${t('common.created_successfully')}`,
-      });
-    } else {
-      // Update existing invoice
-      const updatedInvoices = invoices.map(invoice => 
-        invoice.id === selectedInvoice?.id ? {...newInvoice, id: invoice.id} : invoice
-      );
-      
-      setInvoices(updatedInvoices);
-      
-      toast({
-        title: t('invoices.updated'),
-        description: `${t('invoices.invoice')} #${invoiceNumber} ${t('common.updated_successfully')}`,
-      });
-    }
-  };
-  
-  const handleSendFormSubmit = (data: any) => {
-    if (!selectedInvoice) return;
-    
-    // Update the invoice status to 'sent'
-    const updatedInvoice = {
-      ...selectedInvoice,
-      status: 'sent' as InvoiceStatus,
-      updatedAt: new Date().toISOString()
-    };
-    
-    // Update the invoices array
-    const updatedInvoices = invoices.map(invoice => 
-      invoice.id === updatedInvoice.id ? updatedInvoice : invoice
-    );
-    
+    // Add the new invoice to the list (in a real app, this would be an API call)
+    const updatedInvoices = [...invoices, newInvoice];
     setInvoices(updatedInvoices);
     
     toast({
-      title: t('invoices.sent'),
-      description: `${t('invoices.invoice')} #${selectedInvoice.invoiceNumber} ${t('common.sent_successfully')}`,
+      title: t('invoices.created'),
+      description: `${t('invoices.invoice')} #${invoiceNumber}`,
     });
-  };
-  
-  const handleConfirmDelete = () => {
-    if (!selectedInvoice) return;
     
-    // Remove the invoice from the list
-    const updatedInvoices = invoices.filter(invoice => invoice.id !== selectedInvoice.id);
-    setInvoices(updatedInvoices);
-    
-    setIsDeleteOpen(false);
-    
-    toast({
-      title: t('invoices.deleted'),
-      description: `${t('invoices.invoice')} #${selectedInvoice.invoiceNumber} ${t('common.deleted_successfully')}`,
-    });
+    // Close the dialog
+    setIsFormOpen(false);
   };
   
   // Status options for the filter
@@ -711,7 +771,7 @@ const Invoices = () => {
         <SendInvoiceDialog
           open={isSendOpen}
           onOpenChange={setIsSendOpen}
-          onSubmit={handleSendFormSubmit}
+          onSubmit={handleSendInvoiceSubmit}
           invoice={selectedInvoice}
         />
       )}
@@ -720,7 +780,7 @@ const Invoices = () => {
       <DeleteConfirmDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleDeleteInvoice}
         title={t('invoices.confirm_delete')}
         description={t('invoices.confirm_delete_desc')}
       />

@@ -112,5 +112,55 @@
     "unknownClient": "عميل غير معروف",
     "search": "البحث عن عرض سعر",
     "noResults": "لا توجد عروض أسعار تطابق بحثك"
+  },
+  "payments": {
+    "title": "المدفوعات",
+    "add": "إضافة دفعة",
+    "reconciliation": "تسوية مصرفية",
+    "reminders": "تذكيرات الدفع",
+    "audit": "سجل التدقيق",
+    "reporting": "التقارير"
+  },
+  "reconciliation": {
+    "title": "تسوية مصرفية",
+    "description": "مطابقة كشوف الحساب المصرفية مع الفواتير والمدفوعات",
+    "import": "استيراد",
+    "export": "تصدير",
+    "date": "التاريخ",
+    "description": "الوصف",
+    "reference": "المرجع",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "matched": "مطابق",
+    "partially_matched": "مطابق جزئياً",
+    "unmatched": "غير مطابق",
+    "ignored": "متجاهل",
+    "match": "مطابقة",
+    "edit_match": "تعديل المطابقة",
+    "ignore": "تجاهل"
+  },
+  "reminders": {
+    "title": "تذكيرات الدفع",
+    "description": "إدارة وإرسال تذكيرات للفواتير المتأخرة",
+    "send": "إرسال تذكيرات",
+    "overdue_invoices": "فواتير متأخرة",
+    "history": "السجل",
+    "settings": "الإعدادات",
+    "select_all": "تحديد الكل",
+    "no_overdue_invoices": "لا توجد فواتير متأخرة",
+    "mark_paid": "تعليم كمدفوعة",
+    "gentle_reminder": "تذكير لطيف",
+    "standard_reminder": "تذكير قياسي",
+    "urgent_reminder": "تذكير عاجل"
+  },
+  "audit": {
+    "title": "سجل التدقيق",
+    "description": "تتبع جميع الإجراءات المتخذة في النظام",
+    "date_range": "الفترة الزمنية",
+    "event_type": "نوع الحدث",
+    "user": "المستخدم",
+    "search": "بحث",
+    "no_events": "لم يتم العثور على أحداث"
   }
 } 

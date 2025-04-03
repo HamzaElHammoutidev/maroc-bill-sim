@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,11 +7,62 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, BarChart3, PieChart, Download, Share, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import AdvancePaymentReport from '@/components/reports/AdvancePaymentReport';
 
 const Reports = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [reportType, setReportType] = useState("sales");
+  const companyId = user?.companyId || '101'; // Default for demo
+  
+  const renderReportContent = () => {
+    switch(reportType) {
+      case 'advance_payments':
+        return <AdvancePaymentReport companyId={companyId} />;
+      default:
+        return (
+          <div className="space-y-6">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                  {t(`reports.${reportType}_title`)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-[300px] flex items-center justify-center">
+                <p className="text-muted-foreground">{t('reports.chart_placeholder')}</p>
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PieChart className="h-5 w-5 text-muted-foreground" />
+                    {t('reports.summary_title')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{t('reports.summary_placeholder')}</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                    {t('reports.trends_title')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{t('reports.trends_placeholder')}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+    }
+  };
   
   return (
     <div className="staggered-fade-in">
@@ -34,6 +84,7 @@ const Reports = () => {
                 <SelectItem value="clients">{t('reports.types.clients')}</SelectItem>
                 <SelectItem value="products">{t('reports.types.products')}</SelectItem>
                 <SelectItem value="invoices">{t('reports.types.invoices')}</SelectItem>
+                <SelectItem value="advance_payments">{t('reports.types.advance_payments')}</SelectItem>
               </SelectContent>
             </Select>
             
@@ -55,45 +106,7 @@ const Reports = () => {
         </CardContent>
       </Card>
       
-      <div className="space-y-6">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
-              {t(`reports.${reportType}_title`)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center">
-            <p className="text-muted-foreground">{t('reports.chart_placeholder')}</p>
-          </CardContent>
-        </Card>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-muted-foreground" />
-                {t('reports.summary_title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{t('reports.summary_placeholder')}</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                {t('reports.trends_title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{t('reports.trends_placeholder')}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {renderReportContent()}
     </div>
   );
 };

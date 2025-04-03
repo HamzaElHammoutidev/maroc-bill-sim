@@ -27,7 +27,8 @@ import {
   RotateCw,
   Ban,
   Calendar,
-  Eye
+  Eye,
+  Pencil
 } from 'lucide-react';
 import DataTable, { Column } from '@/components/DataTable/DataTable';
 import TableActions, { ActionItem } from '@/components/DataTable/TableActions';
@@ -56,7 +57,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import InvoiceFormDialog from '@/components/invoices/InvoiceFormDialog';
+import ProformaFormDialog from '@/components/invoices/ProformaFormDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import ReceiptGenerator from '@/components/invoices/ReceiptGenerator';
 
 const ProformaInvoices = () => {
   const { t } = useTranslation();
@@ -83,6 +88,11 @@ const ProformaInvoices = () => {
   const [isSendOpen, setIsSendOpen] = useState(false);
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  
+  const [subtotal, setSubtotal] = useState(0);
+  const [vatAmount, setVatAmount] = useState(0);
+  const [discountTotal, setDiscountTotal] = useState(0);
+  const [total, setTotal] = useState(0);
   
   // Load proforma invoices
   useEffect(() => {
@@ -163,6 +173,65 @@ const ProformaInvoices = () => {
     setSelectedProforma(proforma);
     setIsCreateForm(false);
     setIsFormOpen(true);
+  };
+  
+  const handleFormSubmit = (data: any) => {
+    if (isCreateForm) {
+      // Create new proforma
+      const newProforma: ProformaInvoice = {
+        id: `pro-${Date.now()}`,
+        companyId: companyId,
+        clientId: data.clientId,
+        proformaNumber: data.proformaNumber || `PRO-${format(new Date(), 'yyyy-MM')}-${proformas.length + 1}`,
+        date: data.date.toISOString(),
+        expiryDate: data.expiryDate.toISOString(),
+        status: 'draft',
+        items: data.items,
+        subtotal: subtotal,
+        vatAmount: vatAmount,
+        discount: discountTotal,
+        total: total,
+        notes: data.notes,
+        terms: data.paymentTerms,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      setProformas([...proformas, newProforma]);
+      toast({
+        title: t('invoices.created'),
+        description: `${t('invoices.proforma_invoice')} ${newProforma.proformaNumber} ${t('invoices.created')}`
+      });
+    } else if (selectedProforma) {
+      // Update existing proforma
+      const updatedProformas = proformas.map(p => 
+        p.id === selectedProforma.id 
+          ? {
+              ...p,
+              clientId: data.clientId,
+              proformaNumber: data.proformaNumber,
+              date: data.date.toISOString(),
+              expiryDate: data.expiryDate.toISOString(),
+              items: data.items,
+              subtotal: subtotal,
+              vatAmount: vatAmount,
+              discount: discountTotal,
+              total: total,
+              notes: data.notes,
+              terms: data.paymentTerms,
+              updatedAt: new Date().toISOString()
+            }
+          : p
+      );
+      
+      setProformas(updatedProformas);
+      toast({
+        title: t('invoices.updated'),
+        description: `${t('invoices.proforma_invoice')} ${selectedProforma.proformaNumber} ${t('invoices.updated')}`
+      });
+    }
+    
+    setIsFormOpen(false);
   };
   
   const handleSendProforma = (proforma: ProformaInvoice) => {
@@ -246,6 +315,11 @@ const ProformaInvoices = () => {
     
     setIsDeleteOpen(false);
     setSelectedProforma(null);
+  };
+  
+  const handleDownloadReceipt = (proforma: ProformaInvoice) => {
+    // Here you can add any additional logic needed when downloading a receipt
+    console.log('Downloading receipt for proforma:', proforma.proformaNumber);
   };
   
   // Status counts for cards
@@ -360,7 +434,7 @@ const ProformaInvoices = () => {
   ];
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         title={t('invoices.proforma_invoices')}
         description={t('invoices.proforma_description')}
@@ -521,6 +595,110 @@ const ProformaInvoices = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Proforma Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {t('invoices.proforma_invoice')} {selectedProforma?.proformaNumber}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedProforma && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium">{t('invoices.client')}</h3>
+                  <p>{getClientById(selectedProforma.clientId)?.name}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">{t('invoices.date')}</h3>
+                  <p>{formatDate(selectedProforma.date)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">{t('invoices.expiry_date')}</h3>
+                  <p>{formatDate(selectedProforma.expiryDate)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">{t('invoices.status')}</h3>
+                  <StatusBadge status={selectedProforma.status} type="invoice" />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-medium mb-2">{t('invoices.items')}</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('invoices.description')}</TableHead>
+                      <TableHead>{t('invoices.quantity')}</TableHead>
+                      <TableHead>{t('invoices.unit_price')}</TableHead>
+                      <TableHead>{t('invoices.vat')}</TableHead>
+                      <TableHead>{t('invoices.discount')}</TableHead>
+                      <TableHead>{t('invoices.total')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedProforma.items.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
+                        <TableCell>{item.vatRate}%</TableCell>
+                        <TableCell>{formatCurrency(item.discount)}</TableCell>
+                        <TableCell>{formatCurrency(item.total)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium">{t('invoices.subtotal')}</h3>
+                  <p>{formatCurrency(selectedProforma.subtotal)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">{t('invoices.vat_amount')}</h3>
+                  <p>{formatCurrency(selectedProforma.vatAmount)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">{t('invoices.discount')}</h3>
+                  <p>{formatCurrency(selectedProforma.discount)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">{t('invoices.total')}</h3>
+                  <p>{formatCurrency(selectedProforma.total)}</p>
+                </div>
+              </div>
+
+              {selectedProforma.notes && (
+                <div>
+                  <h3 className="font-medium">{t('invoices.notes')}</h3>
+                  <p>{selectedProforma.notes}</p>
+                </div>
+              )}
+
+              {selectedProforma.terms && (
+                <div>
+                  <h3 className="font-medium">{t('invoices.payment_terms')}</h3>
+                  <p>{selectedProforma.terms}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Proforma Form Dialog */}
+      <ProformaFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        proforma={selectedProforma}
+        isEditing={!isCreateForm}
+      />
     </div>
   );
 };
