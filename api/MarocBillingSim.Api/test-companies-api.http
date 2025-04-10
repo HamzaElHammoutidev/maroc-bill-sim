@@ -1,0 +1,67 @@
+@baseUrl = https://localhost:7241
+@token = 
+@companyId = 
+
+### Login as Super Admin to get token (required for most company operations)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "superadmin@example.com",
+  "password": "password123"
+}
+
+### Login as Admin to get token (limited access to company operations)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Get all companies (requires SuperAdmin role)
+GET {{baseUrl}}/api/companies
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Get specific company by ID
+GET {{baseUrl}}/api/companies/{{companyId}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Create a new company (requires SuperAdmin role)
+POST {{baseUrl}}/api/companies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "New Test Company",
+  "ice": "98765432",
+  "if": "123456789",
+  "rc": "RC123456",
+  "cnss": "CNSS12345",
+  "address": "123 New Company Street",
+  "city": "Rabat",
+  "phone": "0612345678",
+  "email": "contact@newtestcompany.com",
+  "website": "https://www.newtestcompany.com",
+  "rib": "123456789012345678901234"
+}
+
+### Update company (SuperAdmin can update any company, Admins only their own)
+PUT {{baseUrl}}/api/companies/{{companyId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Company Name",
+  "address": "456 Updated Address",
+  "city": "Casablanca",
+  "phone": "0698765432",
+  "email": "updated@testcompany.com"
+}
+
+### Delete company (requires SuperAdmin role, company must have no users)
+DELETE {{baseUrl}}/api/companies/{{companyId}}
+Authorization: Bearer {{token}} 

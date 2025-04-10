@@ -1,9 +1,8 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 
 // Define types for our auth system
-export type UserRole = 'superadmin' | 'admin' | 'comptable' | 'commercial';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Comptable' | 'Commercial';
 
 export interface User {
   id: string;
@@ -11,12 +10,13 @@ export interface User {
   email: string;
   role: UserRole;
   companyId?: string;
+  token?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -24,36 +24,8 @@ interface AuthContextType {
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Sample users for demonstration
-const MOCK_USERS: Record<UserRole, User> = {
-  superadmin: {
-    id: '1',
-    name: 'Super Admin',
-    email: 'superadmin@example.com',
-    role: 'superadmin'
-  },
-  admin: {
-    id: '2',
-    name: 'Company Admin',
-    email: 'admin@example.com',
-    role: 'admin',
-    companyId: '101'
-  },
-  comptable: {
-    id: '3',
-    name: 'Comptable',
-    email: 'comptable@example.com',
-    role: 'comptable',
-    companyId: '101'
-  },
-  commercial: {
-    id: '4',
-    name: 'Commercial',
-    email: 'commercial@example.com',
-    role: 'commercial',
-    companyId: '101'
-  }
-};
+// API URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7241';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -68,7 +40,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
@@ -77,32 +50,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  // Mock authentication function
-  const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
+  // Real authentication function
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
-      // For demo purposes, we'll just check if the email matches the role format
-      // In a real app, you'd validate credentials against a backend
-      if (email && password && role) {
-        const user = MOCK_USERS[role];
-        
-        if (user) {
-          setUser(user);
-          localStorage.setItem('user', JSON.stringify(user));
-          toast.success('Connexion réussie !');
-          return true;
-        }
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error ${response.status}`);
       }
       
-      toast.error('Identifiants invalides');
-      return false;
+      const userData = await response.json();
+      
+      // Set the user in state
+      setUser(userData);
+      
+      // Store user in localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      toast.success('Connexion réussie !');
+      return true;
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Erreur de connexion');
+      
+      // Show more specific error message if available
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          toast.error('Identifiants invalides');
+        } else {
+          toast.error(`Erreur: ${error.message || 'Échec de connexion'}`);
+        }
+      } else {
+        toast.error('Erreur de connexion au serveur');
+      }
+      
       return false;
     } finally {
       setIsLoading(false);
@@ -110,8 +102,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear user from state and storage
     setUser(null);
     localStorage.removeItem('user');
+    
     toast.info('Vous êtes déconnecté');
   };
 

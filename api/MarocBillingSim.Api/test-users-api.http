@@ -1,0 +1,70 @@
+@baseUrl = https://localhost:7241
+@token = 
+@userId = 
+
+### Login as Super Admin to get token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "superadmin@example.com",
+  "password": "password123"
+}
+
+### Login as Admin to get token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Get all users (requires SuperAdmin or Admin role)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Get specific user by ID (all users can see their own profile, admins can see users in their company)
+GET {{baseUrl}}/api/users/{{userId}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Create a new user (requires SuperAdmin or Admin role)
+POST {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "New Test User",
+  "email": "testuser@example.com",
+  "password": "Password123",
+  "role": "Comptable",
+  "companyId": "00000000-0000-0000-0000-000000000000"
+}
+
+### Update user (requires SuperAdmin or Admin role)
+PUT {{baseUrl}}/api/users/{{userId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Updated User Name",
+  "email": "testuser@example.com",
+  "role": "Commercial",
+  "active": true
+}
+
+### Update password (users can update their own, admins can update for users in their company)
+PATCH {{baseUrl}}/api/users/{{userId}}/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "Password123",
+  "newPassword": "NewPassword123"
+}
+
+### Delete user (requires SuperAdmin or Admin role)
+DELETE {{baseUrl}}/api/users/{{userId}}
+Authorization: Bearer {{token}} 

@@ -1,0 +1,52 @@
+@baseUrl = https://localhost:7241
+@token = 
+
+### Initialize and verify test users
+GET {{baseUrl}}/api/auth/test
+Accept: application/json
+
+### Login as Super Admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "superadmin@example.com",
+  "password": "password123"
+}
+
+### Login as Admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Login as Comptable
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "comptable@example.com",
+  "password": "password123"
+}
+
+### Login as Commercial
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "commercial@example.com",
+  "password": "password123"
+}
+
+### Access Protected Endpoint (copy the token from login response)
+GET {{baseUrl}}/api/auth/protected
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Get Current User (copy the token from login response)
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+Accept: application/json 

@@ -1,33 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { CurrencySelector } from '@/components/CurrencySelector';
 
 const Login = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, user } = useAuth();
-  const { toast } = useToast();
   
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('password');
-  const [role, setRole] = useState('admin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -42,14 +31,12 @@ const Login = () => {
     setIsSubmitting(true);
     
     try {
-      await login(email, password, role as UserRole);
-      navigate('/dashboard');
+      const success = await login(email, password);
+      if (success) {
+        navigate('/dashboard');
+      }
     } catch (error) {
-      toast({
-        title: 'Login Failed',
-        description: 'Invalid credentials',
-        variant: 'destructive',
-      });
+      toast.error('Échec de connexion');
     } finally {
       setIsSubmitting(false);
     }
@@ -74,7 +61,7 @@ const Login = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="email@example.com"
               autoComplete="email"
               required
             />
@@ -93,24 +80,6 @@ const Login = () => {
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="role">{t('login.role')}</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Roles</SelectLabel>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="accountant">Accountant</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          
           <div className="flex items-center space-x-2">
             <Checkbox
               id="rememberMe"
@@ -126,7 +95,7 @@ const Login = () => {
           </div>
           
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Logging in...' : t('login.button')}
+            {isSubmitting ? t('login.submitting') : t('login.button')}
           </Button>
         </form>
       </div>

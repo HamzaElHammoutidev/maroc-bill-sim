@@ -1,0 +1,48 @@
+# .NET Core build folders
+bin/
+obj/
+
+# Rider and Visual Studio folders
+.idea/
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# Visual Studio Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Environment-specific settings
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Keep the Migrations folder but not its contents
+Data/Migrations/*
+!Data/Migrations/.gitkeep
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db 
